@@ -1,0 +1,7 @@
+Fundamentals of Computing, summer 2025, Course Project: Educational social media website.
+Team: syntaxError.
+Team members:
+Yousef Abood, 900248250, youssefabood@aucegypt.edu
+Malak elzawawy, 900243252, malakelzwawy@aucegypt.edu
+Ahmed Mostafa 900248352, ahmedmahmoud135@aucegypt.edu
+Amr Mostafa 900248320, amr_21@aucegypt.edu
