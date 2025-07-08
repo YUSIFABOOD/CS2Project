@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication System</title>
+    <style>
+        :root {
+            --lemon: #fff44f;
+            --lemon-light: #fff176;
+            --lemon-dark: #f9a825;
+            --black: #1a1a1a;
+            --error: #ff3b3b;
+            --success: #4caf50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: var(--black);
+            background-image: 
+                radial-gradient(circle at 100% 100%, rgba(255, 244, 79, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 0% 0%, rgba(255, 244, 79, 0.1) 0%, transparent 50%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: var(--lemon);
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--lemon-light);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            transform-origin: left;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--lemon-dark);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--lemon);
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 4px rgba(255, 244, 79, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        button:active::after {
+            width: 200%;
+            height: 200%;
+        }
+
+        #loginBtn {
+            background: var(--lemon);
+            color: var(--black);
+        }
+
+        #signupBtn {
+            background: transparent;
+            color: var(--lemon);
+            border: 2px solid var(--lemon);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 244, 79, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .message.error {
+            background: rgba(255, 59, 59, 0.1);
+            color: var(--error);
+            border: 1px solid rgba(255, 59, 59, 0.2);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .message.success {
+            background: rgba(76, 175, 80, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .loading::after {
+            content: '';
+            display: block;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 3px solid var(--lemon);
+            border-color: var(--lemon) transparent var(--lemon) transparent;
+            animation: loading 1.2s linear infinite;
+        }
+
+        @keyframes loading {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .form-disabled {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome</h2>
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" required>
+        </div>
+        <div class="button-group">
+            <button id="loginBtn" onclick="handleLogin()">Login</button>
+            <button id="signupBtn" onclick="handleSignup()">Sign Up</button>
+        </div>
+        <div id="message" class="message"></div>
+        <div class="loading" id="loading"></div>
+    </div>
+
+    <script>
+        // Get the current origin
+        const API_URL = window.location.origin;
+        
+        function showMessage(text, isError = false) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${isError ? 'error' : 'success'} show`;
+            
+            // Remove show class after animation
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        function setLoading(isLoading) {
+            const loadingDiv = document.getElementById('loading');
+            const container = document.querySelector('.container');
+            const inputs = document.querySelectorAll('input');
+            const buttons = document.querySelectorAll('button');
+            
+            loadingDiv.style.display = isLoading ? 'block' : 'none';
+            container.classList.toggle('form-disabled', isLoading);
+        }
+
+        async function makeRequest(endpoint, data) {
+            try {
+                setLoading(true);
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(data)
+                });
+
+                let responseData;
+                const responseText = await response.text();
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Invalid response format from server');
+                }
+
+                return { ok: response.ok, data: responseData };
+            } catch (error) {
+                throw error;
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showMessage('Please fill in all fields', true);
+                return;
+            }
+
+            try {
+                const { ok, data } = await makeRequest('/login', { username, password });
+                
+                if (ok) {
+                    showMessage(data.message || 'Login successful!');
+                    localStorage.setItem('token', data.token);
+                } else {
+                    showMessage(data.error || 'Login failed', true);
+                }
+            } catch (error) {
+                showMessage('Error connecting to server. Please try again.', true);
+            }
+        }
+
+        async function handleSignup() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showMessage('Please fill in all fields', true);
+                return;
+            }
+
+            try {
+                const { ok, data } = await makeRequest('/signup', { username, password });
+                
+                if (ok) {
+                    showMessage(data.message || 'Signup successful! Please login.');
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                } else {
+                    showMessage(data.error || 'Signup failed', true);
+                }
+            } catch (error) {
+                showMessage('Error connecting to server. Please try again.', true);
+            }
+        }
+
+        // Add input animations
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('focus', () => {
+                input.parentElement.querySelector('label').style.transform = 'scale(0.9)';
+            });
+            
+            input.addEventListener('blur', () => {
+                if (!input.value) {
+                    input.parentElement.querySelector('label').style.transform = 'scale(1)';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
