@@ -4,21 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Educational Website</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --lemon: #fff44f;
-            --lemon-light: #fff176;
-            --lemon-dark: #f9a825;
-            --black: #1a1a1a;
-            --error: #ff3b3b;
-            --success: #4caf50;
+            /* Light theme variables */
+            --background-light: #e8eaed;
+            --text-light: #1c1c1e;
+            --container-bg-light: rgba(247, 248, 250, 0.85);
+            --input-bg-light: rgba(255, 255, 255, 0.7);
+            --input-border-light: #e5e7eb;
+            --glow-light: rgba(255, 140, 0, 0.15);
+            --shadow-light: rgba(0, 0, 0, 0.12);
+            --button-text-light: #ffffff;
+            --accent-light-theme: #f39c12;
+            
+            /* Dark theme variables */
+            --background-dark: #0c0c0d;
+            --text-dark: #ffffff;
+            --container-bg-dark: rgba(28, 28, 30, 0.98);
+            --input-bg-dark: rgba(44, 44, 46, 0.9);
+            --input-border-dark: #2c2c2e;
+            --glow-dark: rgba(255, 236, 0, 0.15);
+            --shadow-dark: rgba(0, 0, 0, 0.25);
+            --button-text-dark: #1c1c1e;
+            --accent-dark-theme: #fff000;
+            
+            /* Default to dark theme */
+            --background: var(--background-dark);
+            --text: var(--text-dark);
+            --container-bg: var(--container-bg-dark);
+            --input-bg: var(--input-bg-dark);
+            --input-border: var(--input-border-dark);
+            --glow: var(--glow-dark);
+            --shadow: var(--shadow-dark);
+            --button-text: var(--button-text-dark);
+            --accent: var(--accent-dark-theme);
+        }
+
+        /* Light theme class */
+        :root.light-theme {
+            --background: var(--background-light);
+            --text: var(--text-light);
+            --container-bg: var(--container-bg-light);
+            --input-bg: var(--input-bg-light);
+            --input-border: var(--input-border-light);
+            --glow: var(--glow-light);
+            --shadow: var(--shadow-light);
+            --button-text: var(--button-text-light);
+            --accent: var(--accent-light-theme);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Cairo', sans-serif;
+            cursor: default;
         }
 
         body {
@@ -26,135 +69,282 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: var(--black);
-            background-image: 
-                radial-gradient(circle at 100% 100%, rgba(255, 244, 79, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 0% 0%, rgba(255, 244, 79, 0.1) 0%, transparent 50%);
+            background: var(--background);
+            color: var(--text);
+            transition: background-color 0.5s ease, color 0.3s ease;
+            position: relative;
+            letter-spacing: 0.01em;
+            overflow-x: hidden;
         }
 
         .container {
             width: 100%;
-            max-width: 400px;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            animation: fadeIn 0.5s ease-out;
+            max-width: 420px;
+            padding: 2.8rem;
+            background: var(--container-bg);
+            border-radius: 28px;
+            box-shadow: 
+                0 4px 24px -1px var(--shadow),
+                0 16px 32px -4px var(--glow),
+                0 0 0 1px rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            position: relative;
+            z-index: 1;
+            transition: 
+                background-color 0.5s ease,
+                box-shadow 0.3s ease,
+                transform 0.3s ease;
+            backdrop-filter: blur(24px);
+            animation: containerAppear 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes containerAppear {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.98);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            background: linear-gradient(
+                135deg,
+                transparent,
+                var(--glow)
+            );
+            border-radius: 28px;
+            z-index: -1;
+            opacity: 0.3;
+            transition: opacity 0.3s ease;
+        }
+
+        .container:hover::before {
+            opacity: 0.5;
         }
 
         h2 {
-            color: var(--lemon);
+            color: var(--accent);
             text-align: center;
-            margin-bottom: 2rem;
-            font-size: 2rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            margin-bottom: 2.8rem;
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            text-shadow: 0 0 40px var(--glow);
+            position: relative;
+            animation: glowPulse 3s infinite;
+        }
+
+        @keyframes glowPulse {
+            0% { text-shadow: 0 0 30px var(--glow); }
+            50% { text-shadow: 0 0 50px var(--glow); }
+            100% { text-shadow: 0 0 30px var(--glow); }
         }
 
         .form-group {
-            margin-bottom: 1.5rem;
-            position: relative;
+            transform-origin: top;
+            animation: formGroupAppear 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+            animation-fill-mode: both;
+        }
+
+        .form-group:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        @keyframes formGroupAppear {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .form-group label {
             display: block;
-            color: var(--lemon-light);
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
+            color: var(--text);
+            margin-bottom: 0.7rem;
+            font-size: 0.95rem;
+            font-weight: 600;
             transform-origin: left;
             transition: all 0.3s ease;
+            letter-spacing: 0.02em;
+            opacity: 0.9;
         }
 
         .form-group input {
             width: 100%;
-            padding: 0.8rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 2px solid var(--lemon-dark);
-            border-radius: 8px;
-            color: white;
-            font-size: 1rem;
-            transition: all 0.3s ease;
+            padding: 1.2rem;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 16px;
+            color: var(--text);
+            font-size: 1.05rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: text;
+            letter-spacing: 0.01em;
+            box-shadow: 
+                0 2px 6px -2px var(--shadow),
+                0 0 0 1px rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: var(--lemon);
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 0 4px rgba(255, 244, 79, 0.1);
+            border-color: var(--accent);
+            box-shadow: 
+                0 4px 12px -2px var(--glow),
+                0 0 0 2px var(--accent);
+            transform: translateY(-1px);
         }
 
         .button-group {
             display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
+            gap: 1.2rem;
+            margin-top: 2.8rem;
         }
 
         button {
             flex: 1;
-            padding: 0.8rem;
+            padding: 1.2rem;
             border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
+            border-radius: 16px;
+            font-size: 1.05rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: 
+                transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0.0, 0.2, 1),
+                background-color 0.3s ease,
+                color 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+            letter-spacing: 0.02em;
             position: relative;
             overflow: hidden;
         }
 
-        button::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: width 0.6s ease, height 0.6s ease;
-        }
-
-        button:active::after {
-            width: 200%;
-            height: 200%;
-        }
-
-        #loginBtn {
-            background: var(--lemon);
-            color: var(--black);
-        }
-
-        #signupBtn {
-            background: transparent;
-            color: var(--lemon);
-            border: 2px solid var(--lemon);
-        }
-
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 244, 79, 0.2);
+            box-shadow: 
+                0 6px 16px -2px var(--glow),
+                0 12px 24px -4px var(--shadow);
         }
 
         button:active {
             transform: translateY(0);
+            box-shadow: 
+                0 2px 8px -2px var(--glow),
+                0 4px 12px -4px var(--shadow);
+        }
+
+        #loginBtn {
+            background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, #ffee00));
+            animation: buttonAppear 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+            animation-delay: 0.2s;
+            animation-fill-mode: both;
+            color: var(--button-text);
+        }
+
+        #loginBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 20px -2px var(--glow),
+                0 12px 24px -4px var(--shadow),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+            filter: brightness(1.1);
+        }
+
+        #loginBtn:active {
+            transform: translateY(0);
+            box-shadow: 
+                0 2px 8px -2px var(--glow),
+                0 4px 16px -4px var(--shadow);
+            filter: brightness(0.95);
+        }
+
+        #signupBtn {
+            background: transparent;
+            color: var(--accent);
+            border: 1.5px solid var(--accent);
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            animation: buttonAppear 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+            animation-delay: 0.3s;
+            animation-fill-mode: both;
+        }
+
+        #signupBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 20px -2px var(--glow),
+                0 0 0 1px var(--accent);
+        }
+
+        #signupBtn:active {
+            transform: translateY(0);
+            opacity: 0.8;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 28px;
+            right: 28px;
+            background: var(--container-bg);
+            border: 1.5px solid var(--accent);
+            border-radius: 50%;
+            width: 52px;
+            height: 52px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: 
+                transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1),
+                background-color 0.3s ease,
+                box-shadow 0.3s ease;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 
+                0 4px 12px -2px var(--glow),
+                0 8px 16px -4px var(--shadow);
+            backdrop-filter: blur(10px);
+            animation: toggleAppear 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.05) rotate(12deg);
+            background: var(--accent);
+            box-shadow: 
+                0 6px 20px -2px var(--glow),
+                0 12px 24px -4px var(--shadow);
         }
 
         .message {
-            margin-top: 1.5rem;
-            padding: 1rem;
-            border-radius: 8px;
+            margin-top: 2rem;
+            padding: 1.2rem;
+            border-radius: 16px;
             text-align: center;
-            font-weight: 500;
+            font-weight: 600;
             opacity: 0;
             transform: translateY(-10px);
             transition: all 0.3s ease;
+            letter-spacing: 0.01em;
+            box-shadow: 
+                0 4px 12px -2px var(--shadow),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            animation: messageSlide 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
         }
 
         .message.show {
@@ -166,28 +356,20 @@
             background: rgba(255, 59, 59, 0.1);
             color: var(--error);
             border: 1px solid rgba(255, 59, 59, 0.2);
-            animation: shake 0.5s ease-in-out;
+            box-shadow: 
+                0 4px 12px -2px rgba(255, 59, 59, 0.2),
+                0 0 0 1px rgba(255, 59, 59, 0.1);
         }
 
         .message.success {
             background: rgba(76, 175, 80, 0.1);
             color: var(--success);
             border: 1px solid rgba(76, 175, 80, 0.2);
-            animation: slideIn 0.5s ease-out;
+            box-shadow: 
+                0 4px 12px -2px rgba(76, 175, 80, 0.2),
+                0 0 0 1px rgba(76, 175, 80, 0.1);
         }
 
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-
-        @keyframes slideIn {
-            from { transform: translateY(-10px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        /* Loading animation */
         .loading {
             display: none;
             position: absolute;
@@ -199,12 +381,13 @@
         .loading::after {
             content: '';
             display: block;
-            width: 30px;
-            height: 30px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            border: 3px solid var(--lemon);
-            border-color: var(--lemon) transparent var(--lemon) transparent;
+            border: 3px solid var(--accent);
+            border-color: var(--accent) transparent var(--accent) transparent;
             animation: loading 1.2s linear infinite;
+            box-shadow: 0 0 20px var(--glow);
         }
 
         @keyframes loading {
@@ -212,13 +395,94 @@
             100% { transform: rotate(360deg); }
         }
 
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px);
+                box-shadow: 
+                    0 0 0 0 var(--shadow),
+                    0 0 0 0 var(--glow);
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0);
+                box-shadow: 
+                    0 4px 24px -1px var(--shadow),
+                    0 16px 32px -4px var(--glow);
+            }
+        }
+
         .form-disabled {
             opacity: 0.7;
             pointer-events: none;
         }
+
+        ::selection {
+            background: var(--accent);
+            color: var(--text-dark);
+        }
+
+        /* Placeholder styling */
+        ::placeholder {
+            color: var(--text);
+            opacity: 0.5;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+
+        #loggedInView {
+            text-align: center;
+            animation: fadeScale 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
+
+        #userDisplay {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        #logoutBtn {
+            background: var(--accent);
+            color: var(--button-text);
+            max-width: 200px;
+            margin: 1.5rem auto 0;
+            box-shadow: 
+                0 4px 12px -2px var(--glow),
+                0 8px 16px -4px var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .light-theme #logoutBtn {
+            background: var(--text);
+            color: var(--accent);
+            border: 1.5px solid var(--accent);
+        }
+
+        #logoutBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 
+                0 6px 20px -2px var(--glow),
+                0 12px 24px -4px var(--shadow);
+            filter: brightness(1.1);
+        }
+
+        .light-theme #logoutBtn:hover {
+            background: var(--accent);
+            color: var(--button-text);
+            border-color: transparent;
+        }
+
+        #logoutBtn:active {
+            transform: translateY(0);
+            box-shadow: 
+                0 2px 8px -2px var(--glow),
+                0 4px 16px -4px var(--shadow);
+            filter: brightness(0.95);
+        }
     </style>
 </head>
 <body>
+    <button class="theme-toggle" id="themeToggle">🌓</button>
     <div class="container">
         <h2>Welcome</h2>
         <div id="loginForm">
@@ -244,6 +508,23 @@
     </div>
 
     <script>
+        // Theme switching functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const root = document.documentElement;
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        if (savedTheme === 'light') {
+            root.classList.add('light-theme');
+        }
+
+        // Theme toggle handler
+        themeToggle.addEventListener('click', () => {
+            root.classList.toggle('light-theme');
+            const currentTheme = root.classList.contains('light-theme') ? 'light' : 'dark';
+            localStorage.setItem('theme', currentTheme);
+        });
+
         // Get the current origin
         const API_URL = window.location.origin;
         
