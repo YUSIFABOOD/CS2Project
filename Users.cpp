@@ -18,10 +18,7 @@ string User::getSalt() const {return salt;}
 
 void UserStorage::saveUser(const User& user, const string& filename)
 {
-    // Create directory if it doesn't exist
-    fs::path filePath(filename);
-    fs::create_directories(filePath.parent_path());
-
+   
     // Try to open file in append mode
     ofstream file(filename, ios::app);
     if(!file.is_open()) {
@@ -45,16 +42,6 @@ unordered_map<string, User> UserStorage::loadUsers(const string& filename)
 {
     unordered_map<string, User> users;
     
-    // Create directory and empty file if they don't exist
-    fs::path filePath(filename);
-    fs::create_directories(filePath.parent_path());
-    
-    if (!fs::exists(filename)) {
-        ofstream createFile(filename);
-        createFile.close();
-        return users;
-    }
-
     // Try to open and read the file
     ifstream file(filename);
     if(!file.is_open()) {

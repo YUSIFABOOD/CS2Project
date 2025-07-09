@@ -6,11 +6,10 @@ using namespace std;
 
 Authentication::Authentication() {
     try {
-        // Use relative path from build directory
         const string db_path = "../database/users.csv";
         cout << "Loading users from: " << db_path << endl;
         usersByUsername = UserStorage::loadUsers(db_path);
-    } catch (const std::exception& e) {
+    } catch (const exception& e) {
         throw runtime_error("Failed to initialize authentication system: " + string(e.what()));
     }
 }
