@@ -62,7 +62,7 @@ void Authentication::signup(string name, string pass) {
         usersByUsername.insert({name, User(name, hpass, salt)});
         const string db_path = "../database/users.csv";
         UserStorage::saveUser(usersByUsername[name], db_path);
-    } catch (const std::exception& e) {
+    } catch (const exception& e) {
         throw runtime_error("Failed to create user: " + string(e.what()));
     }
 }
