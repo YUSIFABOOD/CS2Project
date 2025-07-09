@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authentication System</title>
+    <title>Educational Website</title>
     <style>
         :root {
             --lemon: #fff44f;
@@ -221,17 +221,23 @@
 <body>
     <div class="container">
         <h2>Welcome</h2>
-        <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" required>
+        <div id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="button-group">
+                <button id="loginBtn" onclick="handleLogin()">Login</button>
+                <button id="signupBtn" onclick="handleSignup()">Sign Up</button>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" required>
-        </div>
-        <div class="button-group">
-            <button id="loginBtn" onclick="handleLogin()">Login</button>
-            <button id="signupBtn" onclick="handleSignup()">Sign Up</button>
+        <div id="loggedInView" style="display: none; text-align: center;">
+            <p style="color: var(--lemon-light); margin-bottom: 1rem;">Welcome back, <span id="userDisplay"></span>!</p>
+            <button id="logoutBtn" onclick="handleLogout()" style="max-width: 200px; margin: 0 auto;">Logout</button>
         </div>
         <div id="message" class="message"></div>
         <div class="loading" id="loading"></div>
@@ -241,6 +247,37 @@
         // Get the current origin
         const API_URL = window.location.origin;
         
+        // Check if user is already logged in
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
+            if (token && username) {
+                showLoggedInView(username);
+            } else {
+                showLoginForm();
+            }
+        }
+
+        function showLoggedInView(username) {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('loggedInView').style.display = 'block';
+            document.getElementById('userDisplay').textContent = username;
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('loggedInView').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        async function handleLogout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            showLoginForm();
+            showMessage('Logged out successfully');
+        }
+
         function showMessage(text, isError = false) {
             const messageDiv = document.getElementById('message');
             messageDiv.textContent = text;
@@ -271,21 +308,33 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    credentials: 'same-origin',
+                    mode: 'cors',
+                    credentials: 'include',
                     body: JSON.stringify(data)
                 });
 
+                const contentType = response.headers.get('content-type');
                 let responseData;
-                const responseText = await response.text();
-                try {
-                    responseData = JSON.parse(responseText);
-                } catch (e) {
-                    throw new Error('Invalid response format from server');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    responseData = await response.json();
+                } else {
+                    const text = await response.text();
+                    try {
+                        responseData = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error(`Server returned non-JSON response: ${text}`);
+                    }
                 }
 
-                return { ok: response.ok, data: responseData };
+                if (!response.ok) {
+                    throw new Error(responseData.error || 'Request failed');
+                }
+
+                return { ok: true, data: responseData };
             } catch (error) {
-                throw error;
+                console.error('Request error:', error);
+                return { ok: false, data: { error: error.message } };
             } finally {
                 setLoading(false);
             }
@@ -306,6 +355,8 @@
                 if (ok) {
                     showMessage(data.message || 'Login successful!');
                     localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', username);
+                    showLoggedInView(username);
                 } else {
                     showMessage(data.error || 'Login failed', true);
                 }
@@ -323,17 +374,28 @@
                 return;
             }
 
+            if (username.length < 3) {
+                showMessage('Username must be at least 3 characters long', true);
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters long', true);
+                return;
+            }
+
             try {
                 const { ok, data } = await makeRequest('/signup', { username, password });
                 
                 if (ok) {
-                    showMessage(data.message || 'Signup successful! Please login.');
+                    showMessage('Signup successful! You can now login with your credentials.');
                     document.getElementById('username').value = '';
                     document.getElementById('password').value = '';
                 } else {
-                    showMessage(data.error || 'Signup failed', true);
+                    showMessage(data.error || 'Signup failed. Please try again.', true);
                 }
             } catch (error) {
+                console.error('Signup error:', error);
                 showMessage('Error connecting to server. Please try again.', true);
             }
         }
@@ -350,6 +412,9 @@
                 }
             });
         });
+
+        // Check login status when page loads
+        document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
 </body>
 </html> 
