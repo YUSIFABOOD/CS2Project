@@ -1,7 +1,9 @@
 #ifndef AVLTREE_H
 #define AVLTREE_H
+
 #include <bits/stdc++.h>
 using namespace std;
+
 class AVLtree {
 public:
     struct Nodeuser {
@@ -20,9 +22,13 @@ public:
     };
 
     Nodeuser* root;
-    string referenceUsername;
+    Nodeuser* referenceUser;
 
-    AVLtree() : root(nullptr) {}
+    AVLtree() : root(nullptr), referenceUser(nullptr) {}
+
+    void setReferenceUser(Nodeuser* user) {
+        referenceUser = user;
+    }
 
     int getHeight(Nodeuser* node) {
         return node ? node->height : 0;
@@ -44,6 +50,7 @@ public:
 
         x->right = y;
         y->left = T2;
+
         updateHeight(y);
         updateHeight(x);
         return x;
@@ -74,59 +81,61 @@ public:
         return count;
     }
 
-    Nodeuser* insertByMutualFriends(Nodeuser* node, Nodeuser* newUser, const vector<string>& referenceFriends) {
-        newUser->mutualCount = countMutual(newUser->friends, referenceFriends);
-
-        if (!node) {
+    Nodeuser* insert(Nodeuser* root, Nodeuser* newUser) {
+        if (!root) {
+            newUser->mutualCount = countMutual(newUser->friends, referenceUser->friends);
             return newUser;
         }
 
-        if (newUser->mutualCount < node->mutualCount ||
-            (newUser->mutualCount == node->mutualCount && newUser->username < node->username)) {
-            node->left = insertByMutualFriends(node->left, newUser, referenceFriends);
-            if (node->left) node->left->parent = node;
-        }
-        else if (newUser->mutualCount > node->mutualCount ||
-                 (newUser->mutualCount == node->mutualCount && newUser->username > node->username)) {
-            node->right = insertByMutualFriends(node->right, newUser, referenceFriends);
-            if (node->right) node->right->parent = node;
-        }
-        else {
-            return node;
-        }
+        int newCount = countMutual(newUser->friends, referenceUser->friends);
+        int rootCount = countMutual(root->friends, referenceUser->friends);
 
-        updateHeight(node);
+        if (newCount > rootCount) {
+            root->left = insert(root->left, newUser);
+            if (root->left) root->left->parent = root;
+        } else if (newCount < rootCount) {
+            root->right = insert(root->right, newUser);
+            if (root->right) root->right->parent = root;
+        } else {
 
-        int balance = getBalance(node);
+            if (newUser->username < root->username) {
+                root->left = insert(root->left, newUser);
+                if (root->left) root->left->parent = root;
+            } else if (newUser->username > root->username) {
+                root->right = insert(root->right, newUser);
+                if (root->right) root->right->parent = root;
+            } else {
 
-        if (balance > 1 && (newUser->mutualCount < node->left->mutualCount ||
-                           (newUser->mutualCount == node->left->mutualCount &&
-                            newUser->username < node->left->username))) {
-            return rotateRight(node);
-        }
-
-
-        if (balance < -1 && (newUser->mutualCount > node->right->mutualCount ||
-                            (newUser->mutualCount == node->right->mutualCount &&
-                             newUser->username > node->right->username))) {
-            return rotateLeft(node);
+                return root;
+            }
         }
 
-        if (balance > 1 && (newUser->mutualCount > node->left->mutualCount ||
-                           (newUser->mutualCount == node->left->mutualCount &&
-                            newUser->username > node->left->username))) {
-            node->left = rotateLeft(node->left);
-            return rotateRight(node);
+        updateHeight(root);
+        int balance = getBalance(root);
+
+
+        if (balance > 1 && getBalance(root->left) >= 0)
+            return rotateRight(root);
+
+        if (balance < -1 && getBalance(root->right) <= 0)
+            return rotateLeft(root);
+
+
+        if (balance > 1 && getBalance(root->left) < 0) {
+            root->left = rotateLeft(root->left);
+            return rotateRight(root);
         }
 
-        if (balance < -1 && (newUser->mutualCount < node->right->mutualCount ||
-                            (newUser->mutualCount == node->right->mutualCount &&
-                             newUser->username < node->right->username))) {
-            node->right = rotateRight(node->right);
-            return rotateLeft(node);
+        if (balance < -1 && getBalance(root->right) > 0) {
+            root->right = rotateRight(root->right);
+            return rotateLeft(root);
         }
 
-        return node;
+        return root;
+    }
+
+    void insertUser(Nodeuser* newUser) {
+        root = insert(root, newUser);
     }
 };
 
