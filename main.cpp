@@ -1,6 +1,6 @@
 #include "include/Authentication.h"
 #include "include/Users.h"
-#include <crow.h>
+#include "crow_all.h"
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
@@ -77,6 +77,18 @@ int main() {
         std::cerr << "Failed to initialize authentication system: " << e.what() << std::endl;
         return 1;
     }
+
+    // === FriendManager initialization and data loading ===
+    FriendManager friendManager(auth->usersByUsername);
+    friendManager.loadFriends("database/friends.csv");
+    friendManager.loadPendingRequests("database/pending_requests.csv");
+
+    // Register save function to run at normal program exit
+    std::atexit([&friendManager]() {
+        friendManager.saveFriends("database/friends.csv");
+        friendManager.savePendingRequests("database/pending_requests.csv");
+        std::cout << "Friend data saved on shutdown." << std::endl;
+    });
 
     // Handle OPTIONS requests for CORS
     CROW_ROUTE(app, "/<path>").methods("OPTIONS"_method)([](const crow::request& req, std::string) {
@@ -163,6 +175,159 @@ int main() {
         }
     });
 
+    // --------- FRIEND MANAGEMENT ENDPOINTS ----------
+
+    // Send friend request
+    CROW_ROUTE(app, "/friend/request").methods("POST"_method)
+    ([&friendManager](const crow::request& req) {
+        auto data = crow::json::load(req.body);
+        if (!data || !data.has("from") || !data.has("to")) {
+            return makeJsonResponse(req, 400, "Missing parameters", true);
+        }
+        std::string from = data["from"].s();
+        std::string to = data["to"].s();
+        if (friendManager.sendFriendRequest(from, to)) {
+            return makeJsonResponse(req, 200, "Friend request sent");
+        }
+        return makeJsonResponse(req, 400, "Failed to send friend request", true);
+    });
+
+    // Accept friend request
+    CROW_ROUTE(app, "/friend/accept").methods("POST"_method)
+    ([&friendManager](const crow::request& req) {
+        auto data = crow::json::load(req.body);
+        if (!data || !data.has("from") || !data.has("to")) {
+            return makeJsonResponse(req, 400, "Missing parameters", true);
+        }
+        std::string from = data["from"].s();
+        std::string to = data["to"].s();
+        if (friendManager.acceptFriendRequest(from, to)) {
+            return makeJsonResponse(req, 200, "Friend request accepted");
+        }
+        return makeJsonResponse(req, 400, "Failed to accept friend request", true);
+    });
+
+    // Reject friend request
+    CROW_ROUTE(app, "/friend/reject").methods("POST"_method)
+    ([&friendManager](const crow::request& req) {
+        auto data = crow::json::load(req.body);
+        if (!data || !data.has("from") || !data.has("to")) {
+            return makeJsonResponse(req, 400, "Missing parameters", true);
+        }
+        std::string from = data["from"].s();
+        std::string to = data["to"].s();
+        if (friendManager.rejectFriendRequest(from, to)) {
+            return makeJsonResponse(req, 200, "Friend request rejected");
+        }
+        return makeJsonResponse(req, 400, "Failed to reject friend request", true);
+    });
+
+    // Cancel sent friend request
+    CROW_ROUTE(app, "/friend/cancel").methods("POST"_method)
+    ([&friendManager](const crow::request& req) {
+        auto data = crow::json::load(req.body);
+        if (!data || !data.has("from") || !data.has("to")) {
+            return makeJsonResponse(req, 400, "Missing parameters", true);
+        }
+        std::string from = data["from"].s();
+        std::string to = data["to"].s();
+        if (friendManager.cancelFriendRequest(from, to)) {
+            return makeJsonResponse(req, 200, "Friend request cancelled");
+        }
+        return makeJsonResponse(req, 400, "Failed to cancel friend request", true);
+    });
+
+    // Remove friend
+    CROW_ROUTE(app, "/friend/remove").methods("POST"_method)
+    ([&friendManager](const crow::request& req) {
+        auto data = crow::json::load(req.body);
+        if (!data || !data.has("username") || !data.has("friendName")) {
+            return makeJsonResponse(req, 400, "Missing parameters", true);
+        }
+        std::string username = data["username"].s();
+        std::string friendName = data["friendName"].s();
+        if (friendManager.removeFriend(username, friendName)) {
+            return makeJsonResponse(req, 200, "Friend removed");
+        }
+        return makeJsonResponse(req, 400, "Failed to remove friend", true);
+    });
+
+    // Get friend list
+    CROW_ROUTE(app, "/friend/list").methods("GET"_method)
+    ([&friendManager](const crow::request& req) {
+        auto username = req.url_params.get("username");
+        if (!username) return makeJsonResponse(req, 400, "Missing username", true);
+        auto friends = friendManager.getFriendList(username);
+        crow::json::wvalue result;
+        result["friends"] = crow::json::wvalue::list(friends.begin(), friends.end());
+        auto res = crow::response(200);
+        add_cors_headers(res, req);
+        res.set_header("Content-Type", "application/json");
+        res.body = result.dump();
+        return res;
+    });
+
+    // Get pending requests
+    CROW_ROUTE(app, "/friend/pending").methods("GET"_method)
+    ([&friendManager](const crow::request& req) {
+        auto username = req.url_params.get("username");
+        if (!username) return makeJsonResponse(req, 400, "Missing username", true);
+        auto pending = friendManager.getPendingRequests(username);
+        crow::json::wvalue result;
+        result["pending"] = crow::json::wvalue::list(pending.begin(), pending.end());
+        auto res = crow::response(200);
+        add_cors_headers(res, req);
+        res.set_header("Content-Type", "application/json");
+        res.body = result.dump();
+        return res;
+    });
+
+    // Get mutual friends
+    CROW_ROUTE(app, "/friend/mutual").methods("GET"_method)
+    ([&friendManager](const crow::request& req) {
+        auto userA = req.url_params.get("userA");
+        auto userB = req.url_params.get("userB");
+        if (!userA || !userB) return makeJsonResponse(req, 400, "Missing parameters", true);
+        auto mutual = friendManager.getMutualFriends(userA, userB);
+        crow::json::wvalue result;
+        result["mutual"] = crow::json::wvalue::list(mutual.begin(), mutual.end());
+        auto res = crow::response(200);
+        add_cors_headers(res, req);
+        res.set_header("Content-Type", "application/json");
+        res.body = result.dump();
+        return res;
+    });
+
+    // Get friend suggestions
+    CROW_ROUTE(app, "/friend/suggest").methods("GET"_method)
+    ([&friendManager](const crow::request& req) {
+        auto username = req.url_params.get("username");
+        if (!username) return makeJsonResponse(req, 400, "Missing username", true);
+        auto suggestions = friendManager.suggestFriends(username);
+        crow::json::wvalue result;
+        result["suggestions"] = crow::json::wvalue::list(suggestions.begin(), suggestions.end());
+        auto res = crow::response(200);
+        add_cors_headers(res, req);
+        res.set_header("Content-Type", "application/json");
+        res.body = result.dump();
+        return res;
+    });
+
+    // Get friend count
+    CROW_ROUTE(app, "/friend/count").methods("GET"_method)
+    ([&friendManager](const crow::request& req) {
+        auto username = req.url_params.get("username");
+        if (!username) return makeJsonResponse(req, 400, "Missing username", true);
+        int count = friendManager.getFriendCount(username);
+        crow::json::wvalue result;
+        result["count"] = count;
+        auto res = crow::response(200);
+        add_cors_headers(res, req);
+        res.set_header("Content-Type", "application/json");
+        res.body = result.dump();
+        return res;
+    });
+    
     std::cout << "\nServer running at http://localhost:18080" << std::endl;
     std::cout << "Database file: ../database/users.csv" << std::endl;
     std::cout << "Frontend file: ../assets/index.html" << std::endl;

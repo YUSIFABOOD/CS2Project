@@ -1,6 +1,8 @@
 #ifndef USERS_H
 #define USERS_H
 #include <bits/stdc++.h>
+#include "AVLTree.h"
+
 using namespace std;
 class BaseUser
 {
@@ -15,6 +17,7 @@ class User: public BaseUser
     // vector<Post> posts;
     string hashedPass;
     string salt;
+    AVLTree<string> friends;
     public:
     User();
     User(string name, string pass, string s); 
@@ -25,6 +28,7 @@ class User: public BaseUser
     string getUsername() const override;
     string getPass() const;
     string getSalt() const;
+    const AVLTree<string>& getFriendTree() const;
 
 };
 

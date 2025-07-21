@@ -15,6 +15,7 @@ bool User::verifyPass(string& pass) const
 string User::getUsername() const {return username;}
 string User::getPass() const {return hashedPass;}
 string User::getSalt() const {return salt;}
+const AVLTree<string>& User::getFriendTree() const {return friends;}
 
 void UserStorage::saveUser(const User& user, const string& filename)
 {
