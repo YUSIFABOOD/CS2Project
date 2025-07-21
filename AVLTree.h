@@ -134,9 +134,75 @@ public:
         return root;
     }
 
-    void insertUser(Nodeuser* newUser) {
-        root = insert(root, newUser);
+
+Nodeuser* minValueNode(Nodeuser* node) {
+    Nodeuser* current = node;
+    while (current && current->right != nullptr) {
+        current = current->right;
     }
+    return current;
+}
+
+
+Nodeuser* deleteUser(Nodeuser* root, int keyMutualCount, const string& keyUsername) {
+    if (!root) return nullptr;
+
+    if (keyMutualCount > root->mutualCount) {
+        root->left = deleteUser(root->left, keyMutualCount, keyUsername);
+    } else if (keyMutualCount < root->mutualCount) {
+        root->right = deleteUser(root->right, keyMutualCount, keyUsername);
+    } else {
+
+        if (keyUsername < root->username) {
+            root->left = deleteUser(root->left, keyMutualCount, keyUsername);
+        } else if (keyUsername > root->username) {
+            root->right = deleteUser(root->right, keyMutualCount, keyUsername);
+        } else {
+
+            if (!root->left || !root->right) {
+                Nodeuser* temp = root->left ? root->left : root->right;
+                delete root;
+                return temp;
+            } else {
+                Nodeuser* temp = minValueNode(root->right);
+                 root->username = temp->username;
+                root->friends = temp->friends;
+                root->mutualCount = temp->mutualCount;
+               root->right = deleteUser(root->right, temp->mutualCount, temp->username);
+            }
+        }
+    }
+
+    updateHeight(root);
+    int balance = getBalance(root);
+
+    if (balance > 1 && getBalance(root->left) >= 0)
+        return rotateRight(root);
+
+    if (balance > 1 && getBalance(root->left) < 0) {
+        root->left = rotateLeft(root->left);
+        return rotateRight(root);
+    }
+
+    if (balance < -1 && getBalance(root->right) <= 0)
+        return rotateLeft(root);
+
+    if (balance < -1 && getBalance(root->right) > 0) {
+        root->right = rotateRight(root->right);
+        return rotateLeft(root);
+    }
+
+    return root;
+}
+
+
+
+
+
+
 };
 
+
 #endif
+
+
