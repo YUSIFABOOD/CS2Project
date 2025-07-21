@@ -214,3 +214,7 @@ void Authentication::saveSessions() {
     }
 }
 
+unordered_map<string, User>& Authentication::getUsers() {
+    return usersByUsername;
+}
+

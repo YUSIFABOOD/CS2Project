@@ -14,6 +14,8 @@ set(SOURCES
     Authentication.cpp
     Users.cpp
     timeline.cpp
+    FriendsManager.cpp
+    UserSearchBST.cpp
 )
 
 # Add header files
@@ -21,6 +23,9 @@ set(HEADERS
     include/Authentication.h
     include/Users.h
     include/timeline.h
+    include/FriendsManager.h
+    include/AVLTree.h
+    include/UserSearchBST.h
 )
 
 # Create executable

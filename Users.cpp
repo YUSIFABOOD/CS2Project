@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 using namespace std;
+using json = nlohmann::json;
 
 // User Class Implementation
 User::User() : hashedPass(""), salt("") { username = ""; }
@@ -19,6 +20,10 @@ bool User::verifyPass(const string& pass) const {
 string User::getPass() const { return hashedPass; }
 
 string User::getSalt() const { return salt; }
+
+const AVLTree<string>& User::getFriendTree() const { return friends; }
+
+AVLTree<string>& User::getFriendTree() { return friends; }
 
 json User::toJson() const {
     return json{{"username", username}, {"hashedPass", hashedPass}, {"salt", salt}};

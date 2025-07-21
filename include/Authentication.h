@@ -33,5 +33,8 @@ class Authentication
     // Session persistence methods
     void loadSessions();
     void saveSessions();
+    
+    // Access to users map for FriendsManager
+    unordered_map<string, User>& getUsers();
 };
 #endif

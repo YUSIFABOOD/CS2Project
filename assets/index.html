@@ -48,15 +48,12 @@
         }
 
         .header {
-            background-color: var(--card-background);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            padding: 1rem;
-            position: fixed;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
         }
 
         .header-content {
@@ -80,6 +77,110 @@
 
         .logo i {
             font-size: 1.8rem;
+        }
+
+        .global-search {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 20px;
+        }
+
+        .global-search-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .global-search input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .global-search input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .global-search-btn {
+            padding: 8px 12px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .global-search-btn:hover {
+            background: #357abd;
+        }
+
+        .search-type-toggle {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .search-toggle-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+        }
+
+        .search-toggle-option:hover {
+            color: #4a9eff;
+        }
+
+        .search-toggle-option input[type="radio"] {
+            width: 14px;
+            height: 14px;
+            accent-color: #4a9eff;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 10000;
+            max-width: 300px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-left: 4px solid #4caf50;
+            color: #4caf50;
+        }
+
+        .notification.error {
+            border-left: 4px solid #f44336;
+            color: #f44336;
+        }
+
+        .notification.info {
+            border-left: 4px solid #2196f3;
+            color: #2196f3;
         }
 
         .auth-buttons {
@@ -827,6 +928,250 @@
         .loading {
             animation: pulse 1.5s infinite ease-in-out;
         }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .nav-tab {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .nav-tab:hover {
+            background: var(--hover-color);
+        }
+
+        .nav-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Friends Section */
+        .friends-header {
+            margin-bottom: 20px;
+        }
+
+        .friends-search {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+        }
+
+        .friends-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .friends-section {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .friends-section h3 {
+            margin-bottom: 15px;
+            color: var(--text-color);
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .friends-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .search-type-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #e0e0e0;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .search-type-option:hover {
+            color: #4a9eff;
+        }
+
+        .search-type-option input[type="radio"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #4a9eff;
+        }
+
+        .search-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-button {
+            padding: 10px 15px;
+            background: #4a9eff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .search-button:hover {
+            background: #357abd;
+        }
+
+        .friend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--secondary-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .friend-item:hover {
+            background: var(--hover-color);
+            transform: translateY(-1px);
+        }
+
+        .friend-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .friend-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .friend-name {
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .friend-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .friend-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .friend-action.accept {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .friend-action.decline {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .friend-action.remove {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .friend-action.add {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .friend-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
@@ -836,6 +1181,27 @@
                 <i class="fas fa-stream"></i>
                 Social Timeline
             </a>
+            
+            <!-- Global Search Bar -->
+            <div class="global-search" id="globalSearch" style="display: none;">
+                <div class="global-search-container">
+                    <input type="text" id="globalSearchInput" placeholder="Search for users..." onkeypress="if(event.key==='Enter') performGlobalSearch()">
+                    <button onclick="performGlobalSearch()" class="global-search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <div class="search-type-toggle">
+                    <label class="search-toggle-option">
+                        <input type="radio" name="globalSearchType" value="substring" checked>
+                        <span>Contains</span>
+                    </label>
+                    <label class="search-toggle-option">
+                        <input type="radio" name="globalSearchType" value="prefix">
+                        <span>Starts with</span>
+                    </label>
+                </div>
+            </div>
+            
             <div class="auth-buttons" id="authButtons">
                 <button class="button secondary" onclick="showLoginModal()">
                     <i class="fas fa-sign-in-alt"></i> Login
@@ -863,17 +1229,28 @@
 
     <div class="container">
         <main class="main-content">
-            <div class="timeline-header">
-                <h2>Timeline</h2>
-                <div class="timeline-filters">
-                    <button class="timeline-filter active" onclick="filterPosts('all')">
-                        <i class="fas fa-globe"></i> All Posts
-                    </button>
-                    <button class="timeline-filter" onclick="filterPosts('my')">
-                        <i class="fas fa-user"></i> My Posts
-                    </button>
-                </div>
+            <!-- Navigation Tabs -->
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="showTab('timeline')">
+                    <i class="fas fa-home"></i> Timeline
+                </button>
+                <button class="nav-tab" onclick="showTab('friends')">
+                    <i class="fas fa-users"></i> Friends
+                </button>
             </div>
+
+            <!-- Timeline Tab -->
+            <div id="timelineTab" class="tab-content active">
+                <div class="timeline-header">
+                    <div class="timeline-filters">
+                        <button class="timeline-filter active" onclick="filterPosts('friends')">
+                            <i class="fas fa-users"></i> Friends Timeline
+                        </button>
+                        <button class="timeline-filter" onclick="filterPosts('my')">
+                            <i class="fas fa-user"></i> My Posts
+                        </button>
+                    </div>
+                </div>
 
             <div class="post-form" id="postForm" style="display: none;">
                 <textarea class="post-input" placeholder="What's on your mind?" id="postContent"></textarea>
@@ -888,8 +1265,66 @@
                 </div>
             </div>
 
-            <div class="posts-container" id="postsContainer">
-                <!-- Posts will be loaded dynamically -->
+                <div class="posts-container" id="postsContainer">
+                    <!-- Posts will be loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Friends Tab -->
+            <div id="friendsTab" class="tab-content">
+                <div class="search-section">
+                    <h3><i class="fas fa-search"></i> Search Users</h3>
+                    <div class="search-options">
+                        <label class="search-type-option">
+                            <input type="radio" name="searchType" value="substring" checked>
+                            <span>Contains</span>
+                        </label>
+                        <label class="search-type-option">
+                            <input type="radio" name="searchType" value="prefix">
+                            <span>Starts with</span>
+                        </label>
+                    </div>
+                    <div class="search-input-group">
+                        <input type="text" id="userSearchInput" placeholder="Search by username..." onkeypress="if(event.key==='Enter') searchUsers()">
+                        <button onclick="searchUsers()" class="search-button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="friends-sections">
+                    <!-- Friend Requests -->
+                    <div class="friends-section">
+                        <h3><i class="fas fa-user-clock"></i> Pending Requests</h3>
+                        <div class="friends-list" id="pendingRequestsList">
+                            <!-- Pending requests will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Friends List -->
+                    <div class="friends-section">
+                        <h3><i class="fas fa-users"></i> Friends</h3>
+                        <div class="friends-list" id="friendsList">
+                            <!-- Friends will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Friend Suggestions -->
+                    <div class="friends-section">
+                        <h3><i class="fas fa-user-plus"></i> Suggestions</h3>
+                        <div class="friends-list" id="suggestionsList">
+                            <!-- Suggestions will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Search Results -->
+                    <div class="friends-section" id="searchResultsSection" style="display: none;">
+                        <h3><i class="fas fa-search"></i> Search Results</h3>
+                        <div class="friends-list" id="searchResultsList">
+                            <!-- Search results will be loaded here -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -1037,6 +1472,21 @@
         </div>
     </div>
 
+    <!-- Global Search Results Modal -->
+    <div id="globalSearchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-search"></i> Search Results</h2>
+                <span class="close" onclick="closeGlobalSearchModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="globalSearchResults">
+                    <!-- Search results will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
         let currentEditPostId = null;
@@ -1052,7 +1502,39 @@
         let confirmCallback = null;
 
         // Initialize the current filter
-        let currentFilter = 'all';
+        let currentFilter = 'friends';
+
+        // Utility Functions
+        function getToken() {
+            return localStorage.getItem(TOKEN_KEY);
+        }
+        
+        function isAuthenticated() {
+            const token = getToken();
+            return token && currentUser;
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            // Add to page
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
 
         // WebSocket Connection
         function connectWebSocket() {
@@ -1206,6 +1688,7 @@
         function updateUIForAuthenticatedUser() {
             document.getElementById('authButtons').style.display = 'none';
             document.getElementById('userMenu').style.display = 'block';
+            document.getElementById('globalSearch').style.display = 'block';
             document.getElementById('username').textContent = currentUser.username;
             document.getElementById('postForm').style.display = 'block';
             
@@ -1226,6 +1709,7 @@
         function updateUIForUnauthenticatedUser() {
             document.getElementById('authButtons').style.display = 'flex';
             document.getElementById('userMenu').style.display = 'none';
+            document.getElementById('globalSearch').style.display = 'none';
             document.getElementById('postForm').style.display = 'none';
             
             // Hide "My Posts" filter when logged out
@@ -1234,9 +1718,9 @@
                 myPostsFilter.style.display = 'none';
             }
 
-            // Reset to "All Posts" if on "My Posts"
+            // Reset to "Friends" if on "My Posts"
             if (currentFilter === 'my') {
-                currentFilter = 'all';
+                currentFilter = 'friends';
                 document.querySelector('.timeline-filter').classList.add('active');
                 loadPosts();
             }
@@ -1421,7 +1905,21 @@
                 const token = localStorage.getItem(TOKEN_KEY);
                 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
                 
-                const response = await fetch(`/api/posts${currentFilter === 'my' ? '?filter=my' : ''}`, {
+                let endpoint = '/api/posts';
+        
+                // Only use authenticated endpoints if user is logged in
+                if (token && currentUser) {
+                    if (currentFilter === 'friends') {
+                        endpoint = '/api/posts/friends';
+                    } else if (currentFilter === 'my') {
+                        endpoint = '/api/posts?filter=my';
+                    }
+                } else {
+                    // For unauthenticated users, always use the public posts endpoint
+                    endpoint = '/api/posts';
+                }
+                
+                const response = await fetch(endpoint, {
                     headers
                 });
 
@@ -1924,7 +2422,485 @@
                 window.location.href = window.location.href + '?nocache=' + Date.now();
             }
         }
+
+        // ===== FRIENDS FUNCTIONALITY =====
         
+        // Tab switching
+        function showTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Load friends data when switching to friends tab
+            if (tabName === 'friends') {
+                loadFriendsData();
+            }
+        }
+        
+        // Load all friends data
+        async function loadFriendsData() {
+            if (!isAuthenticated()) return;
+            
+            try {
+                await Promise.all([
+                    loadFriends(),
+                    loadPendingRequests(),
+                    loadFriendSuggestions()
+                ]);
+            } catch (error) {
+                console.error('Error loading friends data:', error);
+                showNotification('Failed to load friends data', 'error');
+            }
+        }
+        
+        // Load friends list
+        async function loadFriends() {
+            try {
+                const response = await fetch('/api/friends', {
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    renderFriendsList(data.friends || []);
+                } else {
+                    console.error('Failed to load friends');
+                }
+            } catch (error) {
+                console.error('Error loading friends:', error);
+            }
+        }
+        
+        // Load pending friend requests
+        async function loadPendingRequests() {
+            try {
+                const response = await fetch('/api/friends/pending', {
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    renderPendingRequests(data.requests || []);
+                } else {
+                    console.error('Failed to load pending requests');
+                }
+            } catch (error) {
+                console.error('Error loading pending requests:', error);
+            }
+        }
+        
+        // Load friend suggestions
+        async function loadFriendSuggestions() {
+            try {
+                const response = await fetch('/api/friends/suggestions', {
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    renderFriendSuggestions(data.suggestions || []);
+                } else {
+                    console.error('Failed to load friend suggestions');
+                }
+            } catch (error) {
+                console.error('Error loading friend suggestions:', error);
+            }
+        }
+        
+        // Search users
+        async function searchUsers() {
+            const query = document.getElementById('userSearchInput').value.trim();
+            if (!query) {
+                document.getElementById('searchResultsSection').style.display = 'none';
+                return;
+            }
+            
+            // Get selected search type
+            const searchType = document.querySelector('input[name="searchType"]:checked').value;
+            
+            try {
+                const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}&type=${searchType}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log(`Search results (${data.search_type}):`, data.users);
+                    renderSearchResults(data.users || []);
+                    document.getElementById('searchResultsSection').style.display = 'block';
+                } else {
+                    console.error('Failed to search users');
+                }
+            } catch (error) {
+                console.error('Error searching users:', error);
+            }
+        }
+        
+        // Render friends list
+        function renderFriendsList(friends) {
+            const container = document.getElementById('friendsList');
+            
+            if (friends.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>No friends yet. Send some friend requests!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = friends.map(friend => `
+                <div class="friend-item">
+                    <div class="friend-info">
+                        <div class="friend-avatar">${friend.charAt(0).toUpperCase()}</div>
+                        <div class="friend-name">${friend}</div>
+                    </div>
+                    <div class="friend-actions">
+                        <button class="friend-action remove" onclick="removeFriend('${friend}')">
+                            <i class="fas fa-user-minus"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Render pending requests
+        function renderPendingRequests(requests) {
+            const container = document.getElementById('pendingRequestsList');
+            
+            if (requests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-clock"></i>
+                        <p>No pending friend requests</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = requests.map(request => `
+                <div class="friend-item">
+                    <div class="friend-info">
+                        <div class="friend-avatar">${request.charAt(0).toUpperCase()}</div>
+                        <div class="friend-name">${request}</div>
+                    </div>
+                    <div class="friend-actions">
+                        <button class="friend-action accept" onclick="acceptFriendRequest('${request}')">
+                            <i class="fas fa-check"></i> Accept
+                        </button>
+                        <button class="friend-action decline" onclick="declineFriendRequest('${request}')">
+                            <i class="fas fa-times"></i> Decline
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Render friend suggestions
+        function renderFriendSuggestions(suggestions) {
+            const container = document.getElementById('suggestionsList');
+            
+            if (suggestions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-user-plus"></i>
+                        <p>No friend suggestions available</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = suggestions.map(suggestion => `
+                <div class="friend-item">
+                    <div class="friend-info">
+                        <div class="friend-avatar">${suggestion.charAt(0).toUpperCase()}</div>
+                        <div class="friend-name">${suggestion}</div>
+                    </div>
+                    <div class="friend-actions">
+                        <button class="friend-action add" onclick="sendFriendRequest('${suggestion}')">
+                            <i class="fas fa-user-plus"></i> Add Friend
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Render search results
+        function renderSearchResults(users) {
+            const container = document.getElementById('searchResultsList');
+            
+            if (users.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>No users found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = users.map(user => `
+                <div class="friend-item">
+                    <div class="friend-info">
+                        <div class="friend-avatar">${user.charAt(0).toUpperCase()}</div>
+                        <div class="friend-name">${user}</div>
+                    </div>
+                    <div class="friend-actions">
+                        <button class="friend-action add" onclick="sendFriendRequest('${user}')">
+                            <i class="fas fa-user-plus"></i> Add Friend
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Send friend request
+        async function sendFriendRequest(username) {
+            try {
+                const response = await fetch('/api/friends/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    body: JSON.stringify({ friend_username: username })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showNotification(`Friend request sent to ${username}`, 'success');
+                    loadFriendsData(); // Refresh data
+                } else {
+                    showNotification(data.message || 'Failed to send friend request', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending friend request:', error);
+                showNotification('Failed to send friend request', 'error');
+            }
+        }
+        
+        // Accept friend request
+        async function acceptFriendRequest(username) {
+            try {
+                const response = await fetch('/api/friends/accept', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    body: JSON.stringify({ friend_username: username })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showNotification(`Friend request from ${username} accepted`, 'success');
+                    loadFriendsData(); // Refresh data
+                } else {
+                    showNotification(data.message || 'Failed to accept friend request', 'error');
+                }
+            } catch (error) {
+                console.error('Error accepting friend request:', error);
+                showNotification('Failed to accept friend request', 'error');
+            }
+        }
+        
+        // Decline friend request
+        async function declineFriendRequest(username) {
+            try {
+                const response = await fetch('/api/friends/decline', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    body: JSON.stringify({ friend_username: username })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showNotification(`Friend request from ${username} declined`, 'success');
+                    loadFriendsData(); // Refresh data
+                } else {
+                    showNotification(data.message || 'Failed to decline friend request', 'error');
+                }
+            } catch (error) {
+                console.error('Error declining friend request:', error);
+                showNotification('Failed to decline friend request', 'error');
+            }
+        }
+        
+        // Remove friend
+        async function removeFriend(username) {
+            if (!confirm(`Are you sure you want to remove ${username} from your friends?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/friends/remove', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    body: JSON.stringify({ friend_username: username })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showNotification(`${username} removed from friends`, 'success');
+                    loadFriendsData(); // Refresh data
+                } else {
+                    showNotification(data.message || 'Failed to remove friend', 'error');
+                }
+            } catch (error) {
+                console.error('Error removing friend:', error);
+                showNotification('Failed to remove friend', 'error');
+            }
+        }
+        
+        // Add search on Enter key
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('userSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchUsers();
+                    }
+                });
+            }
+        });
+        
+        // Global Search Functions
+        async function performGlobalSearch() {
+            const query = document.getElementById('globalSearchInput').value.trim();
+            if (!query) {
+                return;
+            }
+            
+            const searchType = document.querySelector('input[name="globalSearchType"]:checked').value;
+            
+            try {
+                const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}&type=${searchType}`, {
+                    headers: {
+                        'Authorization': 'Bearer ' + getToken()
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    displayGlobalSearchResults(data.users || [], query, data.search_type);
+                    document.getElementById('globalSearchModal').style.display = 'block';
+                } else {
+                    showNotification('Failed to search users', 'error');
+                }
+            } catch (error) {
+                console.error('Error performing global search:', error);
+                showNotification('Error searching users', 'error');
+            }
+        }
+        
+        function displayGlobalSearchResults(users, query, searchType) {
+            const container = document.getElementById('globalSearchResults');
+            
+            if (users.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <h3>No users found</h3>
+                        <p>No users found for "${query}" using ${searchType} search</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="search-info">
+                    <p><strong>${users.length}</strong> user(s) found for "<strong>${query}</strong>" (${searchType} search)</p>
+                </div>
+                <div class="search-results-list">
+                    ${users.map(username => `
+                        <div class="friend-item">
+                            <div class="friend-info">
+                                <div class="friend-avatar">${username.charAt(0).toUpperCase()}</div>
+                                <div class="friend-name">${username}</div>
+                            </div>
+                            <div class="friend-actions">
+                                <button class="friend-action add" onclick="sendFriendRequestFromGlobal('${username}')">
+                                    <i class="fas fa-user-plus"></i> Add Friend
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+        
+        async function sendFriendRequestFromGlobal(username) {
+            try {
+                const response = await fetch('/api/friends/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    body: JSON.stringify({ username: username })
+                });
+                
+                if (response.ok) {
+                    showNotification(`Friend request sent to ${username}`, 'success');
+                    // Refresh the global search to update button states
+                    performGlobalSearch();
+                } else {
+                    const error = await response.text();
+                    showNotification(error || 'Failed to send friend request', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending friend request:', error);
+                showNotification('Error sending friend request', 'error');
+            }
+        }
+        
+        function closeGlobalSearchModal() {
+            document.getElementById('globalSearchModal').style.display = 'none';
+        }
+        
+        // Close modal when clicking outside - enhanced to handle multiple modals
+        window.addEventListener('click', function(event) {
+            // Global search modal
+            const globalModal = document.getElementById('globalSearchModal');
+            if (event.target === globalModal) {
+                closeGlobalSearchModal();
+            }
+            
+            // Other modals can be handled here too
+            const loginModal = document.getElementById('loginModal');
+            if (event.target === loginModal) {
+                closeLoginModal();
+            }
+            
+            const signupModal = document.getElementById('signupModal');
+            if (event.target === signupModal) {
+                closeSignupModal();
+            }
+        });
+
         // Initialize the app when the page loads
         document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
