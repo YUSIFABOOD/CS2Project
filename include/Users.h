@@ -1,6 +1,7 @@
 #ifndef USERS_H
 #define USERS_H
 #include <bits/stdc++.h>
+#include "Notification.h"
 using namespace std;
 class BaseUser
 {
@@ -15,6 +16,7 @@ class User: public BaseUser
     // vector<Post> posts;
     string hashedPass;
     string salt;
+    vector<Notification> notifications;
     public:
     User();
     User(string name, string pass, string s); 
@@ -25,7 +27,10 @@ class User: public BaseUser
     string getUsername() const override;
     string getPass() const;
     string getSalt() const;
-
+    void addNotification(const std::string&);
+    const std::vector<Notification> getNotifications() const; 
+    void clearNotification(int);
+    void clearAllNotifications();
 };
 
 // class Guest: public BaseUser

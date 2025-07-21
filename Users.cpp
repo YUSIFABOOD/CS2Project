@@ -15,6 +15,23 @@ bool User::verifyPass(string& pass) const
 string User::getUsername() const {return username;}
 string User::getPass() const {return hashedPass;}
 string User::getSalt() const {return salt;}
+void User::addNotification(const std::string & messaaggee)
+{
+    notifications.emplace_back(messaaggee);
+}
+const std::vector<Notification>& User::getNotification() const
+{
+    return notifications;
+}
+void User::clearNotification(int index)
+{
+    if(index>=0 && index<notifications.size())
+        notifications.erase(notifications.begin()+index);
+}
+void User::clearAllNotifications()
+{
+        notifications.clear();
+}
 
 void UserStorage::saveUser(const User& user, const string& filename)
 {
