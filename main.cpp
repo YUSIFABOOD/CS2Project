@@ -1,5 +1,6 @@
 #include "include/Authentication.h"
 #include "include/Users.h"
+#include "include/timeline.h"
 #include <crow.h>
 #include <cstdlib>
 #include <ctime>
@@ -30,13 +31,12 @@ void add_cors_headers(crow::response& res, const crow::request& req) {
 }
 
 // Helper function to read file content
-std::string readFile(const std::string& relative_path) {
-    // First try relative to build directory
-    std::string path = "../" + relative_path;
-    std::cout << "Reading file: " << path << std::endl;
-    
-    if (fs::exists(path)) {
-        std::ifstream file(path);
+std::string readFile(const fs::path& project_root, const std::string& relative_path) {
+    fs::path file_path = project_root / relative_path;
+    std::cout << "Reading file: " << file_path << std::endl;
+
+    if (fs::exists(file_path)) {
+        std::ifstream file(file_path);
         if (file.is_open()) {
             std::stringstream buffer;
             buffer << file.rdbuf();
@@ -44,7 +44,7 @@ std::string readFile(const std::string& relative_path) {
         }
     }
 
-    std::cerr << "Failed to open file: " << path << std::endl;
+    std::cerr << "Failed to open file: " << file_path << std::endl;
     return "";
 }
 
@@ -64,19 +64,47 @@ crow::response makeJsonResponse(const crow::request& req, int code, const std::s
     return res;
 }
 
-int main() {
+// Helper function to find the project root by looking for a marker file (e.g., CMakeLists.txt)
+fs::path find_project_root(fs::path start_path) {
+    fs::path current_path = fs::absolute(start_path);
+    while (!current_path.empty() && current_path != current_path.root_path()) {
+        if (fs::exists(current_path / "CMakeLists.txt")) {
+            return current_path;
+        }
+        current_path = current_path.parent_path();
+    }
+    return ""; // Return empty path if not found
+}
+
+int main(int argc, char* argv[]) {
     srand(time(0));
     crow::SimpleApp app;
+
+    // Determine the executable's path to locate the database directory
+    fs::path executable_path(argv[0]);
+    fs::path project_root = find_project_root(executable_path.parent_path());
+    if (project_root.empty()) {
+        std::cerr << "Error: Could not find project root. Make sure CMakeLists.txt is present." << std::endl;
+        return 1;
+    }
+    std::cout << "Executable path: " << fs::absolute(executable_path) << std::endl;
+    std::cout << "Project root: " << project_root << std::endl;
+    fs::path db_path = project_root / "database";
+    fs::path users_db_path = db_path / "users.json";
+    fs::path posts_db_path = db_path / "posts.json";
 
     // Initialize Authentication
     std::unique_ptr<Authentication> auth;
     try {
-        auth = std::make_unique<Authentication>();
+        auth = std::make_unique<Authentication>(users_db_path.string());
         std::cout << "Authentication system initialized successfully" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Failed to initialize authentication system: " << e.what() << std::endl;
         return 1;
     }
+
+    // Initialize Timeline
+    Timeline timeline(posts_db_path.string());  // Initialize Timeline directly with file path
 
     // Handle OPTIONS requests for CORS
     CROW_ROUTE(app, "/<path>").methods("OPTIONS"_method)([](const crow::request& req, std::string) {
@@ -86,8 +114,8 @@ int main() {
     });
 
     // --------- ROOT ROUTE ----------
-    CROW_ROUTE(app, "/")([]() {
-        std::string content = readFile("assets/index.html");
+    CROW_ROUTE(app, "/")([&project_root]() {
+        std::string content = readFile(project_root, "assets/index.html");
         if (content.empty()) {
             return crow::response(404, "Frontend not found");
         }
@@ -97,7 +125,7 @@ int main() {
     });
 
     // --------- SIGNUP ----------
-    CROW_ROUTE(app, "/signup").methods("POST"_method)([&auth](const crow::request& req) {
+    CROW_ROUTE(app, "/api/auth/signup").methods("POST"_method)([&auth](const crow::request& req) {
         std::cout << "\n=== Processing Signup Request ===" << std::endl;
         std::cout << "Request body: " << req.body << std::endl;
 
@@ -115,8 +143,21 @@ int main() {
             std::string password = data["password"].s();
 
             auth->signup(username, password);
-            std::cout << "Signup successful for user: " << username << std::endl;
-            return makeJsonResponse(req, 200, "Signup successful");
+            
+            // Generate token after successful signup
+            std::string token = auth->login(username, password);
+            
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["token"] = token;
+            result["username"] = username;
+            result["message"] = "Signup successful";
+
+            auto res = crow::response(200);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
 
         } catch (const std::exception& e) {
             std::cerr << "Signup error: " << e.what() << std::endl;
@@ -125,7 +166,7 @@ int main() {
     });
 
     // --------- LOGIN ----------
-    CROW_ROUTE(app, "/login").methods("POST"_method)([&auth](const crow::request& req) {
+    CROW_ROUTE(app, "/api/auth/login").methods("POST"_method)([&auth](const crow::request& req) {
         std::cout << "\n=== Processing Login Request ===" << std::endl;
         std::cout << "Request body: " << req.body << std::endl;
 
@@ -144,11 +185,21 @@ int main() {
 
             std::string token = auth->login(username, password);
             if (token.empty()) {
-                return makeJsonResponse(req, 401, "Invalid username or password", true);
+                crow::json::wvalue result;
+                result["success"] = false;
+                result["message"] = "Invalid username or password";
+                
+                auto res = crow::response(401);
+                add_cors_headers(res, req);
+                res.set_header("Content-Type", "application/json");
+                res.body = result.dump();
+                return res;
             }
 
             crow::json::wvalue result;
+            result["success"] = true;
             result["token"] = token;
+            result["username"] = username;
             result["message"] = "Login successful";
 
             auto res = crow::response(200);
@@ -163,15 +214,310 @@ int main() {
         }
     });
 
-    std::cout << "\nServer running at http://localhost:18080" << std::endl;
-    std::cout << "Database file: ../database/users.csv" << std::endl;
-    std::cout << "Frontend file: ../assets/index.html" << std::endl;
-    
-    // Configure server to listen on all interfaces
-    app.bindaddr("0.0.0.0")
-       .port(18080)
-       .multithreaded()
-       .run();
-    
+    // --------- VERIFY TOKEN ----------
+    CROW_ROUTE(app, "/api/auth/verify").methods("GET"_method)([&auth](const crow::request& req) {
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            crow::json::wvalue result;
+            result["success"] = false;
+            result["message"] = "No token provided";
+            
+            auto res = crow::response(401);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        }
+
+        std::string token = authHeader.substr(7);
+        try {
+            std::string username = auth->verifyToken(token);
+            
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["username"] = username;
+            result["user"] = username;  // Frontend expects 'user' field
+            
+            auto res = crow::response(200);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        } catch (const std::exception& e) {
+            crow::json::wvalue result;
+            result["success"] = false;
+            result["message"] = e.what();
+            
+            auto res = crow::response(401);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        }
+    });
+
+    // --------- POSTS ----------
+    // Get all posts
+    CROW_ROUTE(app, "/api/posts").methods("GET"_method)([&timeline](const crow::request& req) {
+        try {
+            crow::json::wvalue result = crow::json::wvalue::list();
+            vector<Post>& posts = timeline.getPost();
+
+            for (const auto& post : posts) {
+                crow::json::wvalue post_json;
+                post_json["id"] = post.getPostId();
+                post_json["content"] = post.getPostContent();
+                post_json["owner"] = post.getPostOwner();
+                post_json["timestamp"] = post.getPostTimes();
+
+                // Add reactions
+                crow::json::wvalue reactions_json = crow::json::wvalue::list();
+                const auto& reactions = post.getReactions();
+                int reaction_idx = 0;
+                for (const auto& reaction : reactions) {
+                    reactions_json[reaction_idx++] = reaction;
+                }
+                post_json["reactions"] = std::move(reactions_json);
+
+                // Add comments
+                crow::json::wvalue comments_json = crow::json::wvalue::list();
+                const auto& comments = post.getComments();
+                int comment_idx = 0;
+                for (const auto& comment : comments) {
+                    crow::json::wvalue comment_json;
+                    comment_json["id"] = comment.getCommentId();
+                    comment_json["content"] = comment.getCommentContent();
+                    comment_json["owner"] = comment.getCommentOwner();
+                    comment_json["timestamp"] = comment.getCommentTimes();
+                    comments_json[comment_idx++] = std::move(comment_json);
+                }
+                post_json["comments"] = std::move(comments_json);
+                result[result.size()] = std::move(post_json);
+            }
+
+            auto res = crow::response(200);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    // Create new post
+    CROW_ROUTE(app, "/api/posts/create").methods("POST"_method)([&timeline, &auth](const crow::request& req) {
+        // Verify token
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            return makeJsonResponse(req, 401, "Unauthorized", true);
+        }
+
+        try {
+            std::string username = auth->verifyToken(authHeader.substr(7));
+            auto data = crow::json::load(req.body);
+            if (!data || !data.has("content")) {
+                return makeJsonResponse(req, 400, "Invalid post data", true);
+            }
+
+            timeline.Add_post(data["content"].s(), username);
+            
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["message"] = "Post created successfully";
+            
+            auto res = crow::response(201);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    // Delete post
+    CROW_ROUTE(app, "/api/posts/<string>").methods("DELETE"_method)([&timeline, &auth](const crow::request& req, std::string postId) {
+        // Verify token
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            return makeJsonResponse(req, 401, "Unauthorized", true);
+        }
+
+        try {
+            std::string username = auth->verifyToken(authHeader.substr(7));
+            timeline.deletePost(std::stoi(postId));
+            
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["message"] = "Post deleted successfully";
+            
+            auto res = crow::response(200);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    // Edit post
+    CROW_ROUTE(app, "/api/posts/<string>").methods("PUT"_method)([&timeline, &auth](const crow::request& req, std::string postId) {
+        // Verify token
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            return makeJsonResponse(req, 401, "Unauthorized", true);
+        }
+
+        try {
+            std::string username = auth->verifyToken(authHeader.substr(7));
+            auto data = crow::json::load(req.body);
+            if (!data || !data.has("content")) {
+                return makeJsonResponse(req, 400, "Invalid post data", true);
+            }
+
+            timeline.EditPost(std::stoi(postId), username, data["content"].s());
+            
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["message"] = "Post updated successfully";
+            
+            auto res = crow::response(200);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    // Add comment
+    CROW_ROUTE(app, "/api/posts/<string>/comment").methods("POST"_method)([&timeline, &auth](const crow::request& req, std::string postId) {
+        // Verify token
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            return makeJsonResponse(req, 401, "Unauthorized", true);
+        }
+
+        try {
+            std::string username = auth->verifyToken(authHeader.substr(7));
+            auto data = crow::json::load(req.body);
+            if (!data || !data.has("content")) {
+                return makeJsonResponse(req, 400, "Invalid comment data", true);
+            }
+
+            Post* post = timeline.findPost(std::stoi(postId));
+            if (!post) {
+                return makeJsonResponse(req, 404, "Post not found", true);
+            }
+
+            post->AddComment(data["content"].s(), username);
+            timeline.savePosts();  // Save after adding comment
+            
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["message"] = "Comment added successfully";
+            
+            auto res = crow::response(201);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    // Add reaction
+    CROW_ROUTE(app, "/api/posts/<string>/react").methods("POST"_method)([&timeline, &auth](const crow::request& req, std::string postId) {
+        // Verify token
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            return makeJsonResponse(req, 401, "Unauthorized", true);
+        }
+
+        try {
+            std::string username = auth->verifyToken(authHeader.substr(7));
+            std::cout << "Reaction request from user: " << username << " for post: " << postId << std::endl;
+            
+            auto data = crow::json::load(req.body);
+            if (!data || !data.has("type")) {
+                return makeJsonResponse(req, 400, "Invalid reaction data", true);
+            }
+
+            std::cout << "Calling timeline.addReaction..." << std::endl;
+            timeline.addReaction(std::stoi(postId), username, data["type"].s());
+            std::cout << "Reaction added successfully" << std::endl;
+            
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["message"] = "Reaction added successfully";
+            
+            auto res = crow::response(200);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+        } catch (const std::exception& e) {
+            std::cout << "Error in reaction endpoint: " << e.what() << std::endl;
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    // Edit a comment
+    CROW_ROUTE(app, "/api/posts/<string>/comment/<string>").methods("PUT"_method)([&timeline, &auth](const crow::request& req, std::string postId, std::string commentId) {
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            return makeJsonResponse(req, 401, "Unauthorized", true);
+        }
+
+        try {
+            std::string username = auth->verifyToken(authHeader.substr(7));
+            auto data = crow::json::load(req.body);
+            if (!data || !data.has("content")) {
+                return makeJsonResponse(req, 400, "Invalid comment data", true);
+            }
+
+            Post* post = timeline.findPost(std::stoi(postId));
+            if (!post) {
+                return makeJsonResponse(req, 404, "Post not found", true);
+            }
+
+            post->EditComment(data["content"].s(), username, std::stoi(commentId));
+            timeline.savePosts();
+
+            return makeJsonResponse(req, 200, "Comment updated successfully");
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    // Delete a comment
+    CROW_ROUTE(app, "/api/posts/<string>/comment/<string>").methods("DELETE"_method)([&timeline, &auth](const crow::request& req, std::string postId, std::string commentId) {
+        std::string authHeader = req.get_header_value("Authorization");
+        if (authHeader.empty() || authHeader.substr(0, 7) != "Bearer ") {
+            return makeJsonResponse(req, 401, "Unauthorized", true);
+        }
+
+        try {
+            std::string username = auth->verifyToken(authHeader.substr(7));
+            Post* post = timeline.findPost(std::stoi(postId));
+            if (!post) {
+                return makeJsonResponse(req, 404, "Post not found", true);
+            }
+
+            post->deleteComment(username, std::stoi(commentId));
+            timeline.savePosts();
+
+            return makeJsonResponse(req, 200, "Comment deleted successfully");
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
+    app.port(18080).multithreaded().run();
+
     return 0;
 }

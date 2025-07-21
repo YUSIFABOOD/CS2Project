@@ -1,0 +1,49 @@
+{
+    "posts": [
+        {
+            "comments": [],
+            "content": "hi",
+            "id": 2,
+            "owner": "yusifabood",
+            "reactions": [
+                "amr"
+            ],
+            "timestamp": 1753133709
+        },
+        {
+            "comments": [],
+            "content": "hi",
+            "id": 3,
+            "owner": "yusifabood",
+            "reactions": [
+                "yusifabood"
+            ],
+            "timestamp": 1753133713
+        },
+        {
+            "comments": [
+                {
+                    "content": "fasefnnjakjhfhawe",
+                    "id": 1,
+                    "owner": "yusifabood",
+                    "postId": 4,
+                    "timestamp": 1753135785
+                },
+                {
+                    "content": "asdfklnljasjfeo;jwa",
+                    "id": 2,
+                    "owner": "yusifabood",
+                    "postId": 4,
+                    "timestamp": 1753135790
+                }
+            ],
+            "content": "hi again",
+            "id": 4,
+            "owner": "yusifabood",
+            "reactions": [
+                "amr"
+            ],
+            "timestamp": 1753133717
+        }
+    ]
+}

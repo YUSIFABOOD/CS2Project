@@ -1,21 +1,46 @@
 cmake_minimum_required(VERSION 3.10)
-project(CS2)
+project(SocialTimeline)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_definitions(OPENSSL_API_COMPAT=0x10100000L)
-
-include_directories(${CMAKE_SOURCE_DIR}/include)
-
+# Find required packages
 find_package(OpenSSL REQUIRED)
+find_package(jsoncpp REQUIRED)
 
-set(SOURCE_FILES
-    main.cpp              
+# Add source files
+set(SOURCES
+    main.cpp
     Authentication.cpp
     Users.cpp
+    timeline.cpp
 )
 
-add_executable(test ${SOURCE_FILES})
+# Add header files
+set(HEADERS
+    include/Authentication.h
+    include/Users.h
+    include/timeline.h
+)
 
-target_link_libraries(test OpenSSL::SSL OpenSSL::Crypto pthread)
+# Create executable
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${OPENSSL_INCLUDE_DIR}
+    ${JSONCPP_INCLUDE_DIRS}
+)
+
+# Link libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${OPENSSL_LIBRARIES}
+    jsoncpp
+    pthread
+)
+
+# Set output directory
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)

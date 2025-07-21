@@ -1,5 +1,10 @@
 #ifndef USERS_H
 #define USERS_H
+
+#include <nlohmann/json.hpp>
+
+// Forward declaration if needed, or just for clarity
+using json = nlohmann::json;
 #include <bits/stdc++.h>
 using namespace std;
 class BaseUser
@@ -17,8 +22,8 @@ class User: public BaseUser
     string salt;
     public:
     User();
-    User(string name, string pass, string s); 
-    bool verifyPass(string& pass) const;
+    User(const string& name, const string& hpass, const string& s); 
+    bool verifyPass(const string& pass) const;
     // void addPost(string content) const override{};
     // void displayProfile() const override{};
     // void addReview(string content, float rating) {};
@@ -26,6 +31,9 @@ class User: public BaseUser
     string getPass() const;
     string getSalt() const;
 
+    // JSON serialization
+    json toJson() const;
+    static User fromJson(const json& j);
 };
 
 // class Guest: public BaseUser
@@ -38,7 +46,7 @@ class User: public BaseUser
 class UserStorage 
 {
 public:
-    static void saveUser(const User& user, const string& filename);
-    static unordered_map<string, User> loadUsers(const string& filename);
+    static void saveUsers(const unordered_map<string, User>& users, const string& filePath);
+    static unordered_map<string, User> loadUsers(const string& filePath);
 };
 #endif
