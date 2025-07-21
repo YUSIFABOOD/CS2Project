@@ -1,7 +1,7 @@
 #ifndef USERS_H
 #define USERS_H
 #include <bits/stdc++.h>
-#include "Notification.h"
+#include "include/Notification.h"
 using namespace std;
 class BaseUser
 {
@@ -19,7 +19,8 @@ class User: public BaseUser
     vector<Notification> notifications;
     public:
     User();
-    User(string name, string pass, string s); 
+    User(string name, string pass, string s);
+    ~User();
     bool verifyPass(string& pass) const;
     // void addPost(string content) const override{};
     // void displayProfile() const override{};
@@ -31,6 +32,9 @@ class User: public BaseUser
     const std::vector<Notification> getNotifications() const; 
     void clearNotification(int);
     void clearAllNotifications();
+    void saveNotificationsToFile(const std::string& filename) const;
+    void loadNotificationsFromFile(const std::string& filename);
+
 };
 
 // class Guest: public BaseUser

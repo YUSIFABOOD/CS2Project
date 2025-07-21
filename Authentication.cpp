@@ -27,11 +27,18 @@ string Authentication::login(string name, string pass) {
     if (!user.verifyPass(pass)) {
         throw runtime_error("Invalid password");
     }
-
+    
+    string notifFile = "../database/notifications_" + name + ".json";
+    try {
+        user.loadNotificationsFromFile(notifFile);
+    } catch (const exception& e) {
+        cerr << "Warning: Failed to load notifications: " << e.what() << endl;
+    }
+    
     if (usersnameToToken.count(name)) {
         return usersnameToToken[name]; // Return existing token
     }
-
+    
     string token = generateSession();
     sessions[token] = name;
     usersnameToToken[name] = token;
@@ -68,9 +75,14 @@ void Authentication::signup(string name, string pass) {
 
 void Authentication::logout(const string& token)
         {   if(sessions.count(token)){
+            string username = sessions[token];
+            User& user = usersByUsername[username];
+            string notifFile = "../database/notifications_" + username + ".json";
+            user.saveNotificationsToFile(notifFile);
             usersnameToToken.erase(sessions[token]);
             sessions.erase(token);
             }
+    
         }
 
 

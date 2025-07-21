@@ -15,4 +15,22 @@ std::string Notification::getFormattedTime() const {
     return std::string(timing);
 }
 
+void Notification::setMessage(const std::string& messagee) { message = messagee; }
 
+void Notification::setTimestamp(std::time_t ts)
+{timestamp=ts;}
+std::time_t Notification::getTimestamp() const {return timestamp;}
+
+void to_json(json& j, const Notification& n)
+{
+    j = json{
+            {"message", n.getMessage()},
+            {"timestamp", n.getTimestamp()}
+        };
+}
+
+void from_json(const json& j, Notification& n)
+{
+    n.setMessage(j.at("message").get<std::string>());
+    n.setTimestamp(j.at("timestamp").get<std::time_t>());
+}
