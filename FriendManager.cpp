@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
+#include "json.hpp"
 using namespace std;
 
 // Constructor: initializes with reference to existing user map
@@ -15,8 +16,6 @@ FriendManager::FriendManager(unordered_map<string, User>& usersMap)
 
 // Send a friend request from -> to
 bool FriendManager::sendFriendRequest(const string& from, const string& to) {
-    if (from == to) return false;
-    if (!users.count(from) || !users.count(to)) return false;
 
     // Already friends?
     if (areFriends(from, to)) return false;
@@ -31,7 +30,6 @@ bool FriendManager::sendFriendRequest(const string& from, const string& to) {
 
 // Accept a friend request from -> to
 bool FriendManager::acceptFriendRequest(const string& from, const string& to) {
-    if (!users.count(from) || !users.count(to)) return false;
 
     auto& pending = pendingRequests[to];
     if (!pending.count(from)) return false;
@@ -45,7 +43,6 @@ bool FriendManager::acceptFriendRequest(const string& from, const string& to) {
 
 // Reject a friend request from -> to
 bool FriendManager::rejectFriendRequest(const string& from, const string& to) {
-    if (!users.count(from) || !users.count(to)) return false;
 
     auto& pending = pendingRequests[to];
     if (!pending.count(from)) return false;
@@ -56,7 +53,6 @@ bool FriendManager::rejectFriendRequest(const string& from, const string& to) {
 
 // Cancel a friend request sent from 'from' to 'to'
 bool FriendManager::cancelFriendRequest(const string& from, const string& to) {
-    if (!users.count(from) || !users.count(to)) return false;
 
     auto& pending = pendingRequests[to];
     if (!pending.count(from)) return false; // No such pending request
@@ -67,7 +63,6 @@ bool FriendManager::cancelFriendRequest(const string& from, const string& to) {
 
 // Remove 'friendName' from 'username's friend list and vice versa
 bool FriendManager::removeFriend(const string& username, const string& friendName) {
-    if (!users.count(username) || !users.count(friendName)) return false;
 
     // Check if they are friends
     if (!areFriends(username, friendName)) return false;
@@ -80,7 +75,6 @@ bool FriendManager::removeFriend(const string& username, const string& friendNam
 
 // Get a list of friends (in-order traversal of AVL tree)
 vector<string> FriendManager::getFriendList(const string& username) const {
-    if (!users.count(username)) return {};
     return users.at(username).getFriendTree().inOrder(); // assumes AVLTree has inOrder()
 }
 
@@ -93,13 +87,11 @@ vector<string> FriendManager::getPendingRequests(const string& username) const {
 
 // Check if two users are friends
 bool FriendManager::areFriends(const string& userA, const string& userB) const {
-    if (!users.count(userA) || !users.count(userB)) return false;
     return users.at(userA).getFriendTree().contains(userB); // assumes AVLTree has search()
 }
 
 // Get mutual friends
 vector<string> FriendManager::getMutualFriends(const string& userA, const string& userB) const {
-    if (!users.count(userA) || !users.count(userB)) return {};
 
     const auto listA = users.at(userA).getFriendTree().inOrder();
     const auto listB = users.at(userB).getFriendTree().inOrder();
@@ -107,12 +99,12 @@ vector<string> FriendManager::getMutualFriends(const string& userA, const string
     unordered_set<string> setA(listA.begin(), listA.end());
     vector<string> mutual;
 
-    for (const auto& name : listB) {
-        if (setA.count(name)) {
-            mutual.push_back(name);
-        }
+    for (int i = 0; i < listB.size(); i++) {
+    string name = listB[i];
+    if (setA.count(name)) {
+        mutual.push_back(name);
     }
-
+}
     return mutual;
 }
 
@@ -124,10 +116,11 @@ vector<string> FriendManager::suggestFriends(const string& username) const {
     const auto directFriends = user.getFriendTree().inOrder();
     unordered_set<string> suggestionsSet;
 
-    for (const auto& friendName : directFriends) {
-        if (!users.count(friendName)) continue;
+    for (int i =0; i< directFriends.size(); i++) {
+        string friendName = directFriends[i];
         const auto secondDegree = users.at(friendName).getFriendTree().inOrder();
-        for (const auto& potential : secondDegree) {
+        for (int j = 0; j < secondDegree.size(); j++) {
+            string potential = secondDegree[j];
             if (potential == username) continue;
             if (!user.getFriendTree().contains(potential)) {
                 suggestionsSet.insert(potential);
@@ -138,62 +131,75 @@ vector<string> FriendManager::suggestFriends(const string& username) const {
     return vector<string>(suggestionsSet.begin(), suggestionsSet.end());
 }
 
-// Save all friends to CSV
+// Save all friends to a JSON file
 void FriendManager::saveFriends(const std::string& filename) {
-    std::ofstream file(filename);
-    for (const auto& [username, user] : users) {
-        file << username;
-        auto friends = user.getFriendTree().inOrder();
-        for (const auto& f : friends) {
-            file << "," << f;
-        }
-        file << "\n";
+    json j;
+
+    for (const auto& pair : users) {
+        const std::string& username = pair.first;
+        const auto& user = pair.second;
+        std::vector<std::string> friends = user.getFriendTree().inOrder();
+
+        j[username] = friends;
     }
+
+    std::ofstream file(filename);
+    file << j.dump(4); // Pretty-print with 4-space indentation
 }
 
-// Load all friends from CSV
+// Load all friends from a JSON file
 void FriendManager::loadFriends(const std::string& filename) {
     std::ifstream file(filename);
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string username;
-        std::getline(ss, username, ',');
+    if (!file.is_open()) return;
+
+    json j;
+    file >> j;
+
+    for (auto it = j.begin(); it != j.end(); ++it) {
+        const std::string& username = it.key();
+        const json& friendList = it.value();
+
         if (!users.count(username)) continue;
-        std::string friendName;
-        while (std::getline(ss, friendName, ',')) {
-            users[username].getFriendTree().insert(friendName);
+
+        for (int i = 0; i < friendList.size(); i++) {
+            users[username].getFriendTree().insert(friendList[i]);
         }
     }
 }
 
-// Save all pending requests to CSV
+// Save pending requests to a JSON file
 void FriendManager::savePendingRequests(const std::string& filename) {
-    std::ofstream file(filename);
-    for (const auto& [receiver, senders] : pendingRequests) {
-        file << receiver;
-        for (const auto& sender : senders) {
-            file << "," << sender;
-        }
-        file << "\n";
+    json j;
+
+    for (const auto& pair : pendingRequests) {
+        const std::string& receiver = pair.first;
+        const std::unordered_set<std::string>& senders = pair.second;
+
+        std::vector<std::string> sendersVec(senders.begin(), senders.end());
+        j[receiver] = sendersVec;
     }
+
+    std::ofstream file(filename);
+    file << j.dump(4);
 }
 
-// Load all pending requests from CSV
+// Load pending requests from a JSON file
 void FriendManager::loadPendingRequests(const std::string& filename) {
     std::ifstream file(filename);
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string receiver;
-        std::getline(ss, receiver, ',');
-        std::string sender;
-        while (std::getline(ss, sender, ',')) {
-            pendingRequests[receiver].insert(sender);
+    if (!file.is_open()) return;
+
+    json j;
+    file >> j;
+
+    for (auto it = j.begin(); it != j.end(); ++it) {
+        const std::string& receiver = it.key();
+        const json& senders = it.value();
+
+        for (int i = 0; i < senders.size(); i++) {
+            pendingRequests[receiver].insert(senders[i]);
         }
     }
 }
-
 int FriendManager::getFriendCount(const std::string& username) const {
     if (!users.count(username)) return 0;
     return users.at(username).getFriendTree().size(); // assumes AVLTree has size()

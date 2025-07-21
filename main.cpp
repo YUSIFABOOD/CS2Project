@@ -80,13 +80,12 @@ int main() {
 
     // === FriendManager initialization and data loading ===
     FriendManager friendManager(auth->usersByUsername);
-    friendManager.loadFriends("database/friends.csv");
-    friendManager.loadPendingRequests("database/pending_requests.csv");
-
+    friendManager.loadFriends("database/friends.json");
+    friendManager.loadPendingRequests("database/pending.json");
     // Register save function to run at normal program exit
     std::atexit([&friendManager]() {
-        friendManager.saveFriends("database/friends.csv");
-        friendManager.savePendingRequests("database/pending_requests.csv");
+        friendManager.saveFriends("database/friends.json");
+        friendManager.savePendingRequests("database/pending.json");
         std::cout << "Friend data saved on shutdown." << std::endl;
     });
 
