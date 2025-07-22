@@ -2,7 +2,11 @@
     "amr": [
         "yusifabood"
     ],
+    "yousef": [
+        "yusifabood"
+    ],
     "yusifabood": [
-        "amr"
+        "amr",
+        "yousef"
     ]
 }
