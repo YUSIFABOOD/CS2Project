@@ -1,17 +1,14 @@
 #ifndef AVLTREE_H
 #define AVLTREE_H
-
 #include <bits/stdc++.h>
 using namespace std;
-
 class AVLtree {
 public:
     struct Nodeuser {
         string username;
         int height;
-        vector<string> friends;
         int mutualCount;
-
+        vector<string> books;
         Nodeuser* left;
         Nodeuser* right;
         Nodeuser* parent;
@@ -69,26 +66,21 @@ public:
     }
 
     int countMutual(const vector<string>& a, const vector<string>& b) {
+        unordered_set<string> setA(a.begin(), a.end());
         int count = 0;
-        for (const string& friendA : a) {
-            for (const string& friendB : b) {
-                if (friendA == friendB) {
-                    count++;
-                    break;
-                }
-            }
+        for (const string& book : b) {
+            if (setA.count(book)) count++;
         }
         return count;
     }
 
     Nodeuser* insert(Nodeuser* root, Nodeuser* newUser) {
-        if (!root) {
-            newUser->mutualCount = countMutual(newUser->friends, referenceUser->friends);
-            return newUser;
-        }
+        newUser->mutualCount = countMutual(newUser->books, referenceUser->books);
 
-        int newCount = countMutual(newUser->friends, referenceUser->friends);
-        int rootCount = countMutual(root->friends, referenceUser->friends);
+        if (!root) return newUser;
+
+        int newCount = newUser->mutualCount;
+        int rootCount = countMutual(root->books, referenceUser->books);
 
         if (newCount > rootCount) {
             root->left = insert(root->left, newUser);
@@ -97,7 +89,6 @@ public:
             root->right = insert(root->right, newUser);
             if (root->right) root->right->parent = root;
         } else {
-
             if (newUser->username < root->username) {
                 root->left = insert(root->left, newUser);
                 if (root->left) root->left->parent = root;
@@ -105,7 +96,6 @@ public:
                 root->right = insert(root->right, newUser);
                 if (root->right) root->right->parent = root;
             } else {
-
                 return root;
             }
         }
@@ -113,18 +103,72 @@ public:
         updateHeight(root);
         int balance = getBalance(root);
 
-
         if (balance > 1 && getBalance(root->left) >= 0)
             return rotateRight(root);
-
-        if (balance < -1 && getBalance(root->right) <= 0)
-            return rotateLeft(root);
-
 
         if (balance > 1 && getBalance(root->left) < 0) {
             root->left = rotateLeft(root->left);
             return rotateRight(root);
         }
+
+        if (balance < -1 && getBalance(root->right) <= 0)
+            return rotateLeft(root);
+
+        if (balance < -1 && getBalance(root->right) > 0) {
+            root->right = rotateRight(root->right);
+            return rotateLeft(root);
+        }
+
+        return root;
+    }
+
+    Nodeuser* minValueNode(Nodeuser* node) {
+        Nodeuser* current = node;
+        while (current && current->left != nullptr)
+            current = current->left;
+        return current;
+    }
+
+    Nodeuser* deleteUser(Nodeuser* root, int keyMutualCount, const string& keyUsername) {
+        if (!root) return nullptr;
+
+        if (keyMutualCount > root->mutualCount) {
+            root->left = deleteUser(root->left, keyMutualCount, keyUsername);
+        } else if (keyMutualCount < root->mutualCount) {
+            root->right = deleteUser(root->right, keyMutualCount, keyUsername);
+        } else {
+            if (keyUsername < root->username) {
+                root->left = deleteUser(root->left, keyMutualCount, keyUsername);
+            } else if (keyUsername > root->username) {
+                root->right = deleteUser(root->right, keyMutualCount, keyUsername);
+            } else {
+                if (!root->left || !root->right) {
+                    Nodeuser* temp = root->left ? root->left : root->right;
+                    delete root;
+                    return temp;
+                } else {
+                    Nodeuser* temp = minValueNode(root->right);
+                    root->username = temp->username;
+                    root->books = temp->books;
+                    root->mutualCount = temp->mutualCount;
+                    root->right = deleteUser(root->right, temp->mutualCount, temp->username);
+                }
+            }
+        }
+
+        updateHeight(root);
+        int balance = getBalance(root);
+
+        if (balance > 1 && getBalance(root->left) >= 0)
+            return rotateRight(root);
+
+        if (balance > 1 && getBalance(root->left) < 0) {
+            root->left = rotateLeft(root->left);
+            return rotateRight(root);
+        }
+
+        if (balance < -1 && getBalance(root->right) <= 0)
+            return rotateLeft(root);
 
         if (balance < -1 && getBalance(root->right) > 0) {
             root->right = rotateRight(root->right);
@@ -135,74 +179,8 @@ public:
     }
 
 
-Nodeuser* minValueNode(Nodeuser* node) {
-    Nodeuser* current = node;
-    while (current && current->right != nullptr) {
-        current = current->right;
-    }
-    return current;
-}
-
-
-Nodeuser* deleteUser(Nodeuser* root, int keyMutualCount, const string& keyUsername) {
-    if (!root) return nullptr;
-
-    if (keyMutualCount > root->mutualCount) {
-        root->left = deleteUser(root->left, keyMutualCount, keyUsername);
-    } else if (keyMutualCount < root->mutualCount) {
-        root->right = deleteUser(root->right, keyMutualCount, keyUsername);
-    } else {
-
-        if (keyUsername < root->username) {
-            root->left = deleteUser(root->left, keyMutualCount, keyUsername);
-        } else if (keyUsername > root->username) {
-            root->right = deleteUser(root->right, keyMutualCount, keyUsername);
-        } else {
-
-            if (!root->left || !root->right) {
-                Nodeuser* temp = root->left ? root->left : root->right;
-                delete root;
-                return temp;
-            } else {
-                Nodeuser* temp = minValueNode(root->right);
-                 root->username = temp->username;
-                root->friends = temp->friends;
-                root->mutualCount = temp->mutualCount;
-               root->right = deleteUser(root->right, temp->mutualCount, temp->username);
-            }
-        }
-    }
-
-    updateHeight(root);
-    int balance = getBalance(root);
-
-    if (balance > 1 && getBalance(root->left) >= 0)
-        return rotateRight(root);
-
-    if (balance > 1 && getBalance(root->left) < 0) {
-        root->left = rotateLeft(root->left);
-        return rotateRight(root);
-    }
-
-    if (balance < -1 && getBalance(root->right) <= 0)
-        return rotateLeft(root);
-
-    if (balance < -1 && getBalance(root->right) > 0) {
-        root->right = rotateRight(root->right);
-        return rotateLeft(root);
-    }
-
-    return root;
-}
-
-
-
-
-
 
 };
 
-
 #endif
-
 
