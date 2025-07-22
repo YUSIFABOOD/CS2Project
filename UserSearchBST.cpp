@@ -1,10 +1,16 @@
 #include "include/UserSearchBST.h"
 #include <algorithm>
 #include <cctype>
+#include <stdexcept>
+#include <iostream>
 
 UserSearchBST::UserSearchBST() : root(nullptr) {}
 
 std::shared_ptr<UserNode> UserSearchBST::insert(std::shared_ptr<UserNode> node, const std::string& username) {
+    if (username.empty()) {
+        throw std::invalid_argument("Username cannot be empty");
+    }
+
     if (!node) {
         return std::make_shared<UserNode>(username);
     }
@@ -26,8 +32,16 @@ std::shared_ptr<UserNode> UserSearchBST::insert(std::shared_ptr<UserNode> node, 
 }
 
 void UserSearchBST::insertUser(const std::string& username) {
-    if (!username.empty()) {
-        root = insert(root, username);
+    try {
+        if (!username.empty()) {
+            root = insert(root, username);
+            std::cout << "Added user to search BST: " << username << std::endl;
+        } else {
+            throw std::invalid_argument("Cannot insert empty username");
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error inserting user into search BST: " << e.what() << std::endl;
+        throw;
     }
 }
 
@@ -46,7 +60,7 @@ std::vector<std::string> UserSearchBST::getAllUsers() const {
 }
 
 void UserSearchBST::searchPrefix(std::shared_ptr<UserNode> node, const std::string& prefix, std::vector<std::string>& result) const {
-    if (!node) return;
+    if (!node || prefix.empty()) return;
     
     // Convert to lowercase for case-insensitive search
     std::string lowerUsername = node->username;
@@ -57,27 +71,37 @@ void UserSearchBST::searchPrefix(std::shared_ptr<UserNode> node, const std::stri
     // Check if current node matches prefix
     if (lowerUsername.substr(0, lowerPrefix.length()) == lowerPrefix) {
         result.push_back(node->username);
+        std::cout << "Found prefix match: " << node->username << std::endl;
     }
     
-    // Decide which subtrees to search
+    // If prefix is less than or equal to current node, search left subtree
     if (lowerPrefix <= lowerUsername) {
         searchPrefix(node->left, prefix, result);
     }
-    if (lowerPrefix >= lowerUsername.substr(0, lowerPrefix.length())) {
-        searchPrefix(node->right, prefix, result);
-    }
+    
+    // Always search right subtree as it might contain matching prefixes
+    searchPrefix(node->right, prefix, result);
 }
 
 std::vector<std::string> UserSearchBST::searchByPrefix(const std::string& prefix) const {
     std::vector<std::string> result;
-    if (!prefix.empty()) {
-        searchPrefix(root, prefix, result);
+    try {
+        if (!prefix.empty()) {
+            std::cout << "Starting prefix search for: '" << prefix << "'" << std::endl;
+            searchPrefix(root, prefix, result);
+            std::cout << "Prefix search completed. Found " << result.size() << " matches." << std::endl;
+        } else {
+            std::cout << "Empty prefix provided, returning empty result" << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error in prefix search: " << e.what() << std::endl;
+        throw;
     }
     return result;
 }
 
 void UserSearchBST::searchSubstring(std::shared_ptr<UserNode> node, const std::string& query, std::vector<std::string>& result) const {
-    if (!node) return;
+    if (!node || query.empty()) return;
     
     // Convert to lowercase for case-insensitive search
     std::string lowerUsername = node->username;
@@ -88,22 +112,36 @@ void UserSearchBST::searchSubstring(std::shared_ptr<UserNode> node, const std::s
     // Check if current node contains the query substring
     if (lowerUsername.find(lowerQuery) != std::string::npos) {
         result.push_back(node->username);
+        std::cout << "Found substring match: " << node->username << std::endl;
     }
     
-    // Search both subtrees for substring matches
+    // Search both subtrees as substring matches could be anywhere
     searchSubstring(node->left, query, result);
     searchSubstring(node->right, query, result);
 }
 
 std::vector<std::string> UserSearchBST::searchBySubstring(const std::string& query) const {
     std::vector<std::string> result;
-    if (!query.empty()) {
-        searchSubstring(root, query, result);
+    try {
+        if (!query.empty()) {
+            std::cout << "Starting substring search for: '" << query << "'" << std::endl;
+            searchSubstring(root, query, result);
+            std::cout << "Substring search completed. Found " << result.size() << " matches." << std::endl;
+        } else {
+            std::cout << "Empty query provided, returning empty result" << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error in substring search: " << e.what() << std::endl;
+        throw;
     }
     return result;
 }
 
 bool UserSearchBST::userExists(const std::string& username) const {
+    if (username.empty()) {
+        return false;
+    }
+
     std::shared_ptr<UserNode> current = root;
     
     while (current) {
@@ -129,8 +167,14 @@ void UserSearchBST::clear() {
 }
 
 void UserSearchBST::rebuildFromUsers(const std::vector<std::string>& users) {
-    clear();
-    for (const auto& user : users) {
-        insertUser(user);
+    try {
+        clear();
+        std::cout << "Rebuilding search BST with " << users.size() << " users" << std::endl;
+        for (const auto& user : users) {
+            insertUser(user);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Error rebuilding search BST: " << e.what() << std::endl;
+        throw;
     }
 }

@@ -294,3 +294,20 @@ void Timeline::addReaction(int postId, const string& username, const string& rea
     savePosts();
 }
 
+// Add this new method to the Timeline class
+vector<Post> Timeline::getFilteredPosts(const string& username, const FriendsManager& friendsManager) {
+    vector<Post> filteredPosts;
+    for (const auto& post : PostsVec) {
+        // Include posts if they are from the user or from their friends
+        if (post.getPostOwner() == username || friendsManager.areFriends(username, post.getPostOwner())) {
+            filteredPosts.push_back(post);
+        }
+    }
+    // Sort by timestamp, newest first
+    sort(filteredPosts.begin(), filteredPosts.end(), 
+        [](const Post& a, const Post& b) {
+            return a.getPostTimes() > b.getPostTimes();
+        });
+    return filteredPosts;
+}
+

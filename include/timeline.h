@@ -4,6 +4,7 @@
 #include <fstream>
 #include <ctime>
 #include <filesystem>
+#include "FriendsManager.h"
 using namespace std;
 
 namespace fs = std::filesystem;
@@ -104,4 +105,5 @@ public:
     void sortByTime();
     void showComments(int postId) const;
     void addReaction(int postId, const string& username, const string& reaction);
+    vector<Post> getFilteredPosts(const string& username, const FriendsManager& friendsManager);
 };

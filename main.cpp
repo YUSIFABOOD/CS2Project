@@ -156,6 +156,42 @@ int main(int argc, char* argv[]) {
         return res;
     });
 
+    // Serve favicon
+    CROW_ROUTE(app, "/favicon.ico").methods("GET"_method)([&project_root](const crow::request& req) {
+        auto res = crow::response(204);  // No content
+        return res;
+    });
+
+    // Logout endpoint
+    CROW_ROUTE(app, "/api/auth/logout").methods("POST"_method)([&auth](const crow::request& req) {
+        try {
+            std::string token = getTokenFromRequest(req);
+            if (token.empty()) {
+                return makeJsonResponse(req, 401, "No token provided", true);
+            }
+
+            // Verify and invalidate token
+            std::string username = auth->verifyToken(token);
+            if (username.empty()) {
+                return makeJsonResponse(req, 401, "Invalid token", true);
+            }
+
+            // Return success response
+            crow::json::wvalue result;
+            result["success"] = true;
+            result["message"] = "Logged out successfully";
+
+            auto res = crow::response(200);
+            add_cors_headers(res, req);
+            res.set_header("Content-Type", "application/json");
+            res.body = result.dump();
+            return res;
+
+        } catch (const std::exception& e) {
+            return makeJsonResponse(req, 500, e.what(), true);
+        }
+    });
+
     // --------- ROOT ROUTE ----------
     CROW_ROUTE(app, "/")([&project_root]() {
         std::string content = readFile(project_root, "assets/index.html");
@@ -168,7 +204,7 @@ int main(int argc, char* argv[]) {
     });
 
     // --------- SIGNUP ----------
-    CROW_ROUTE(app, "/api/auth/signup").methods("POST"_method)([&auth](const crow::request& req) {
+    CROW_ROUTE(app, "/api/auth/signup").methods("POST"_method)([&auth, &userSearchBST](const crow::request& req) {
         std::cout << "\n=== Processing Signup Request ===" << std::endl;
         std::cout << "Request body: " << req.body << std::endl;
 
@@ -186,6 +222,9 @@ int main(int argc, char* argv[]) {
             std::string password = data["password"].s();
 
             auth->signup(username, password);
+            
+            // Add the new user to the search BST
+            userSearchBST->insertUser(username);
             
             // Generate token after successful signup
             std::string token = auth->login(username, password);
@@ -301,12 +340,32 @@ int main(int argc, char* argv[]) {
 
     // --------- POSTS ----------
     // Get all posts
-    CROW_ROUTE(app, "/api/posts").methods("GET"_method)([&timeline](const crow::request& req) {
+    CROW_ROUTE(app, "/api/posts").methods("GET"_method)([&timeline, &auth](const crow::request& req) {
         try {
+            // Get the filter parameter
+            std::string filter = req.url_params.get("filter") ? req.url_params.get("filter") : "";
+            
+            // Get current user if authenticated
+            std::string currentUser;
+            try {
+                std::string authHeader = req.get_header_value("Authorization");
+                if (!authHeader.empty() && authHeader.substr(0, 7) == "Bearer ") {
+                    currentUser = auth->verifyToken(authHeader.substr(7));
+                }
+            } catch (...) {
+                // If token verification fails, continue without a user
+            }
+
             crow::json::wvalue result = crow::json::wvalue::list();
             vector<Post>& posts = timeline.getPost();
+            int resultIndex = 0;
 
             for (const auto& post : posts) {
+                // If filter is "my", only show current user's posts
+                if (filter == "my" && (!currentUser.empty() && post.getPostOwner() != currentUser)) {
+                    continue;
+                }
+
                 crow::json::wvalue post_json;
                 post_json["id"] = post.getPostId();
                 post_json["content"] = post.getPostContent();
@@ -335,7 +394,7 @@ int main(int argc, char* argv[]) {
                     comments_json[comment_idx++] = std::move(comment_json);
                 }
                 post_json["comments"] = std::move(comments_json);
-                result[result.size()] = std::move(post_json);
+                result[resultIndex++] = std::move(post_json);
             }
 
             auto res = crow::response(200);
@@ -352,59 +411,56 @@ int main(int argc, char* argv[]) {
     CROW_ROUTE(app, "/api/posts/friends").methods("GET"_method)([&timeline, &auth, &friendsManager](const crow::request& req) {
         try {
             std::string token = getTokenFromRequest(req);
-            if (token.empty()) {
+            std::string currentUser = auth->verifyToken(token);
+            
+            if (currentUser.empty()) {
                 return makeJsonResponse(req, 401, "Authentication required", true);
             }
 
-            std::string currentUser = auth->verifyToken(token);
-            if (currentUser.empty()) {
-                return makeJsonResponse(req, 401, "Invalid token", true);
-            }
+            crow::json::wvalue result = crow::json::wvalue::list();
+            vector<Post>& posts = timeline.getPost();
+            int resultIndex = 0;
 
             // Get user's friends list
             std::vector<std::string> friends = friendsManager->getFriendList(currentUser);
-            
-            // Add current user to see their own posts too
-            friends.push_back(currentUser);
-
-            crow::json::wvalue result = crow::json::wvalue::list();
-            vector<Post>& posts = timeline.getPost();
+            std::unordered_set<std::string> friendSet(friends.begin(), friends.end());
+            friendSet.insert(currentUser); // Include user's own posts
 
             for (const auto& post : posts) {
-                // Check if post owner is in friends list
-                bool isFriend = std::find(friends.begin(), friends.end(), post.getPostOwner()) != friends.end();
-                
-                if (isFriend) {
-                    crow::json::wvalue post_json;
-                    post_json["id"] = post.getPostId();
-                    post_json["content"] = post.getPostContent();
-                    post_json["owner"] = post.getPostOwner();
-                    post_json["timestamp"] = post.getPostTimes();
-
-                    // Add reactions
-                    crow::json::wvalue reactions_json = crow::json::wvalue::list();
-                    const auto& reactions = post.getReactions();
-                    int reaction_idx = 0;
-                    for (const auto& reaction : reactions) {
-                        reactions_json[reaction_idx++] = reaction;
-                    }
-                    post_json["reactions"] = std::move(reactions_json);
-
-                    // Add comments
-                    crow::json::wvalue comments_json = crow::json::wvalue::list();
-                    const auto& comments = post.getComments();
-                    int comment_idx = 0;
-                    for (const auto& comment : comments) {
-                        crow::json::wvalue comment_json;
-                        comment_json["id"] = comment.getCommentId();
-                        comment_json["content"] = comment.getCommentContent();
-                        comment_json["owner"] = comment.getCommentOwner();
-                        comment_json["timestamp"] = comment.getCommentTimes();
-                        comments_json[comment_idx++] = std::move(comment_json);
-                    }
-                    post_json["comments"] = std::move(comments_json);
-                    result[result.size()] = std::move(post_json);
+                // Only include posts from friends and the user themselves
+                if (friendSet.find(post.getPostOwner()) == friendSet.end()) {
+                    continue;
                 }
+
+                crow::json::wvalue post_json;
+                post_json["id"] = post.getPostId();
+                post_json["content"] = post.getPostContent();
+                post_json["owner"] = post.getPostOwner();
+                post_json["timestamp"] = post.getPostTimes();
+
+                // Add reactions
+                crow::json::wvalue reactions_json = crow::json::wvalue::list();
+                const auto& reactions = post.getReactions();
+                int reaction_idx = 0;
+                for (const auto& reaction : reactions) {
+                    reactions_json[reaction_idx++] = reaction;
+                }
+                post_json["reactions"] = std::move(reactions_json);
+
+                // Add comments
+                crow::json::wvalue comments_json = crow::json::wvalue::list();
+                const auto& comments = post.getComments();
+                int comment_idx = 0;
+                for (const auto& comment : comments) {
+                    crow::json::wvalue comment_json;
+                    comment_json["id"] = comment.getCommentId();
+                    comment_json["content"] = comment.getCommentContent();
+                    comment_json["owner"] = comment.getCommentOwner();
+                    comment_json["timestamp"] = comment.getCommentTimes();
+                    comments_json[comment_idx++] = std::move(comment_json);
+                }
+                post_json["comments"] = std::move(comments_json);
+                result[resultIndex++] = std::move(post_json);
             }
 
             auto res = crow::response(200);
@@ -632,215 +688,269 @@ int main(int argc, char* argv[]) {
     // --------- FRIENDSHIP MANAGEMENT ENDPOINTS ----------
     
     // Send friend request
-    CROW_ROUTE(app, "/api/friends/request").methods("POST"_method)([&](const crow::request& req) {
+    CROW_ROUTE(app, "/api/friends/request").methods("POST"_method)([&auth, &friendsManager, &pending_requests_db_path](const crow::request& req) {
         try {
-            std::string username = auth->verifyToken(getTokenFromRequest(req));
-            
-            auto data = crow::json::load(req.body);
-            if (!data) {
-                return makeJsonResponse(req, 400, "Invalid JSON format", true);
+            // Verify token and get current user
+            std::string token = req.get_header_value("Authorization").substr(7);
+            std::string from = auth->verifyToken(token);
+
+            // Parse request body
+            auto body = crow::json::load(req.body);
+            if (!body) {
+                std::cerr << "Invalid request body" << std::endl;
+                return crow::response(400, "Invalid request body");
             }
-            
-            if (!data.has("to")) {
-                return makeJsonResponse(req, 400, "Missing 'to' field", true);
+
+            std::cout << "Request body: " << req.body << std::endl;
+
+            // Check both possible field names
+            std::string to;
+            if (body.has("username")) {
+                to = body["username"].s();
+            } else if (body.has("friend_username")) {
+                to = body["friend_username"].s();
+            } else {
+                std::cerr << "Missing username field" << std::endl;
+                return crow::response(400, "Missing username field");
             }
-            
-            std::string to = data["to"].s();
-            
-            if (username == to) {
-                return makeJsonResponse(req, 400, "Cannot send friend request to yourself", true);
+
+            if (to.empty()) {
+                std::cerr << "Username is empty" << std::endl;
+                return crow::response(400, "Username is required");
             }
-            
-            if (!auth->userExists(to)) {
-                return makeJsonResponse(req, 404, "User not found", true);
+
+            std::cout << "Sending friend request from " << from << " to " << to << std::endl;
+
+            // Send friend request
+            bool success = friendsManager->sendFriendRequest(from, to);
+            if (success) {
+                std::cout << "Friend request sent successfully, saving to: " << pending_requests_db_path.string() << std::endl;
+                friendsManager->savePendingRequests(pending_requests_db_path.string());
+            } else {
+                std::cout << "Failed to send friend request" << std::endl;
             }
-            
-            bool success = friendsManager->sendFriendRequest(username, to);
-            if (!success) {
-                return makeJsonResponse(req, 400, "Friend request already sent or users are already friends", true);
-            }
-            
-            friendsManager->savePendingRequests(pending_requests_db_path.string());
-            
-            crow::json::wvalue result;
-            result["success"] = true;
-            result["message"] = "Friend request sent successfully";
-            
-            auto res = crow::response(200);
-            add_cors_headers(res, req);
-            res.set_header("Content-Type", "application/json");
-            res.body = result.dump();
-            return res;
-            
+
+            crow::json::wvalue response;
+            response["success"] = success;
+            response["message"] = success ? "Friend request sent" : "Friend request already sent or users are already friends";
+            return crow::response(response);
+
         } catch (const std::exception& e) {
-            return makeJsonResponse(req, 500, e.what(), true);
+            std::cerr << "Error in friend request: " << e.what() << std::endl;
+            crow::json::wvalue response;
+            response["success"] = false;
+            response["message"] = std::string("Error: ") + e.what();
+            return crow::response(response);
         }
     });
-    
+
     // Accept friend request
-    CROW_ROUTE(app, "/api/friends/accept").methods("POST"_method)([&](const crow::request& req) {
+    CROW_ROUTE(app, "/api/friends/accept").methods("POST"_method)([&auth, &friendsManager, &pending_requests_db_path, &friends_db_path](const crow::request& req) {
         try {
-            std::string username = auth->verifyToken(getTokenFromRequest(req));
-            
-            auto data = crow::json::load(req.body);
-            if (!data) {
-                return makeJsonResponse(req, 400, "Invalid JSON format", true);
+            // Verify token and get current user
+            std::string token = req.get_header_value("Authorization").substr(7);
+            std::string to = auth->verifyToken(token);
+
+            // Parse request body
+            auto body = crow::json::load(req.body);
+            if (!body) {
+                std::cerr << "Invalid request body" << std::endl;
+                return crow::response(400, "Invalid request body");
             }
-            
-            if (!data.has("from")) {
-                return makeJsonResponse(req, 400, "Missing 'from' field", true);
+
+            std::cout << "Request body: " << req.body << std::endl;
+
+            // Check both possible field names
+            std::string from;
+            if (body.has("username")) {
+                from = body["username"].s();
+            } else if (body.has("friend_username")) {
+                from = body["friend_username"].s();
+            } else {
+                std::cerr << "Missing username field" << std::endl;
+                return crow::response(400, "Missing username field");
             }
-            
-            std::string from = data["from"].s();
-            
-            bool success = friendsManager->acceptFriendRequest(from, username);
-            if (!success) {
-                return makeJsonResponse(req, 400, "No pending friend request from this user", true);
+
+            if (from.empty()) {
+                std::cerr << "Username is empty" << std::endl;
+                return crow::response(400, "Username is required");
             }
-            
-            friendsManager->saveFriends(friends_db_path.string());
-            friendsManager->savePendingRequests(pending_requests_db_path.string());
-            
-            crow::json::wvalue result;
-            result["success"] = true;
-            result["message"] = "Friend request accepted";
-            
-            auto res = crow::response(200);
-            add_cors_headers(res, req);
-            res.set_header("Content-Type", "application/json");
-            res.body = result.dump();
-            return res;
-            
+
+            std::cout << "Accepting friend request from " << from << " to " << to << std::endl;
+
+            // Accept friend request
+            bool success = friendsManager->acceptFriendRequest(from, to);
+            if (success) {
+                std::cout << "Friend request accepted successfully" << std::endl;
+                std::cout << "Saving pending requests to: " << pending_requests_db_path.string() << std::endl;
+                friendsManager->savePendingRequests(pending_requests_db_path.string());
+                std::cout << "Saving friends to: " << friends_db_path.string() << std::endl;
+                friendsManager->saveFriends(friends_db_path.string());
+            } else {
+                std::cout << "Failed to accept friend request" << std::endl;
+            }
+
+            crow::json::wvalue response;
+            response["success"] = success;
+            response["message"] = success ? "Friend request accepted" : "No pending request found";
+            return crow::response(response);
+
         } catch (const std::exception& e) {
-            return makeJsonResponse(req, 500, e.what(), true);
+            std::cerr << "Error in accepting friend request: " << e.what() << std::endl;
+            crow::json::wvalue response;
+            response["success"] = false;
+            response["message"] = std::string("Error: ") + e.what();
+            return crow::response(response);
         }
     });
-    
+
     // Reject friend request
-    CROW_ROUTE(app, "/api/friends/reject").methods("POST"_method)([&](const crow::request& req) {
+    CROW_ROUTE(app, "/api/friends/decline").methods("POST"_method)([&auth, &friendsManager, &pending_requests_db_path](const crow::request& req) {
         try {
-            std::string username = auth->verifyToken(getTokenFromRequest(req));
-            
-            auto data = crow::json::load(req.body);
-            if (!data) {
-                return makeJsonResponse(req, 400, "Invalid JSON format", true);
+            // Verify token and get current user
+            std::string token = req.get_header_value("Authorization").substr(7);
+            std::string to = auth->verifyToken(token);
+
+            // Parse request body
+            auto body = crow::json::load(req.body);
+            if (!body) {
+                std::cerr << "Invalid request body" << std::endl;
+                return crow::response(400, "Invalid request body");
             }
-            
-            if (!data.has("from")) {
-                return makeJsonResponse(req, 400, "Missing 'from' field", true);
+
+            std::cout << "Request body: " << req.body << std::endl;
+
+            // Check both possible field names
+            std::string from;
+            if (body.has("username")) {
+                from = body["username"].s();
+            } else if (body.has("friend_username")) {
+                from = body["friend_username"].s();
+            } else {
+                std::cerr << "Missing username field" << std::endl;
+                return crow::response(400, "Missing username field");
             }
-            
-            std::string from = data["from"].s();
-            
-            bool success = friendsManager->rejectFriendRequest(from, username);
-            if (!success) {
-                return makeJsonResponse(req, 400, "No pending friend request from this user", true);
+
+            if (from.empty()) {
+                std::cerr << "Username is empty" << std::endl;
+                return crow::response(400, "Username is required");
             }
-            
-            friendsManager->savePendingRequests(pending_requests_db_path.string());
-            
-            crow::json::wvalue result;
-            result["success"] = true;
-            result["message"] = "Friend request rejected";
-            
-            auto res = crow::response(200);
-            add_cors_headers(res, req);
-            res.set_header("Content-Type", "application/json");
-            res.body = result.dump();
-            return res;
-            
+
+            std::cout << "Declining friend request from " << from << " to " << to << std::endl;
+
+            // Reject friend request
+            bool success = friendsManager->rejectFriendRequest(from, to);
+            if (success) {
+                std::cout << "Friend request declined successfully" << std::endl;
+                std::cout << "Saving pending requests to: " << pending_requests_db_path.string() << std::endl;
+                friendsManager->savePendingRequests(pending_requests_db_path.string());
+            } else {
+                std::cout << "Failed to decline friend request" << std::endl;
+            }
+
+            crow::json::wvalue response;
+            response["success"] = success;
+            response["message"] = success ? "Friend request declined" : "No pending request found";
+            return crow::response(response);
+
         } catch (const std::exception& e) {
-            return makeJsonResponse(req, 500, e.what(), true);
+            std::cerr << "Error in declining friend request: " << e.what() << std::endl;
+            crow::json::wvalue response;
+            response["success"] = false;
+            response["message"] = std::string("Error: ") + e.what();
+            return crow::response(response);
         }
     });
-    
+
     // Remove friend
-    CROW_ROUTE(app, "/api/friends/remove").methods("POST"_method)([&](const crow::request& req) {
+    CROW_ROUTE(app, "/api/friends/remove").methods("DELETE"_method)([&auth, &friendsManager, &friends_db_path](const crow::request& req) {
         try {
-            std::string username = auth->verifyToken(getTokenFromRequest(req));
-            
-            auto data = crow::json::load(req.body);
-            if (!data) {
-                return makeJsonResponse(req, 400, "Invalid JSON format", true);
+            // Verify token and get current user
+            std::string token = req.get_header_value("Authorization").substr(7);
+            std::string username = auth->verifyToken(token);
+
+            // Parse request body
+            auto body = crow::json::load(req.body);
+            if (!body) {
+                return crow::response(400, "Invalid request body");
             }
-            
-            if (!data.has("friend")) {
-                return makeJsonResponse(req, 400, "Missing 'friend' field", true);
+
+            std::string friendName = body["friend_username"].s();
+            if (friendName.empty()) {
+                return crow::response(400, "Friend username is required");
             }
-            
-            std::string friendName = data["friend"].s();
-            
+
+            std::cout << "Removing friend " << friendName << " from " << username << std::endl;
+
+            // Remove friend
             bool success = friendsManager->removeFriend(username, friendName);
-            if (!success) {
-                return makeJsonResponse(req, 400, "Users are not friends", true);
+            if (success) {
+                std::cout << "Friend removed successfully" << std::endl;
+                std::cout << "Saving friends to: " << friends_db_path.string() << std::endl;
+                friendsManager->saveFriends(friends_db_path.string());
+            } else {
+                std::cout << "Failed to remove friend" << std::endl;
             }
-            
-            friendsManager->saveFriends(friends_db_path.string());
-            
-            crow::json::wvalue result;
-            result["success"] = true;
-            result["message"] = "Friend removed successfully";
-            
-            auto res = crow::response(200);
-            add_cors_headers(res, req);
-            res.set_header("Content-Type", "application/json");
-            res.body = result.dump();
-            return res;
-            
+
+            crow::json::wvalue response;
+            response["success"] = success;
+            response["message"] = success ? "Friend removed" : "Users are not friends";
+            return crow::response(response);
+
         } catch (const std::exception& e) {
-            return makeJsonResponse(req, 500, e.what(), true);
+            std::cerr << "Error in removing friend: " << e.what() << std::endl;
+            crow::json::wvalue response;
+            response["success"] = false;
+            response["message"] = std::string("Error: ") + e.what();
+            return crow::response(response);
         }
     });
-    
-    // Get friends list
-    CROW_ROUTE(app, "/api/friends").methods("GET"_method)([&](const crow::request& req) {
+
+    // Get friend list
+    CROW_ROUTE(app, "/api/friends").methods("GET"_method)([&auth, &friendsManager](const crow::request& req) {
         try {
-            std::string username = auth->verifyToken(getTokenFromRequest(req));
-            
+            // Verify token and get current user
+            std::string token = req.get_header_value("Authorization").substr(7);
+            std::string username = auth->verifyToken(token);
+
+            // Get friend list
             std::vector<std::string> friends = friendsManager->getFriendList(username);
-            
-            crow::json::wvalue result;
-            result["success"] = true;
-            result["friends"] = crow::json::wvalue::list();
-            
-            for (size_t i = 0; i < friends.size(); i++) {
-                result["friends"][i] = friends[i];
-            }
-            
-            auto res = crow::response(200);
-            add_cors_headers(res, req);
-            res.set_header("Content-Type", "application/json");
-            res.body = result.dump();
-            return res;
-            
+
+            crow::json::wvalue response;
+            response["success"] = true;
+            response["friends"] = friends;
+            return crow::response(response);
+
         } catch (const std::exception& e) {
-            return makeJsonResponse(req, 500, e.what(), true);
+            crow::json::wvalue response;
+            response["success"] = false;
+            response["message"] = std::string("Error: ") + e.what();
+            response["friends"] = std::vector<std::string>();
+            return crow::response(response);
         }
     });
-    
+
     // Get pending friend requests
-    CROW_ROUTE(app, "/api/friends/pending").methods("GET"_method)([&](const crow::request& req) {
+    CROW_ROUTE(app, "/api/friends/pending").methods("GET"_method)([&auth, &friendsManager](const crow::request& req) {
         try {
-            std::string username = auth->verifyToken(getTokenFromRequest(req));
-            
-            std::vector<std::string> pending = friendsManager->getPendingRequests(username);
-            
-            crow::json::wvalue result;
-            result["success"] = true;
-            result["pending_requests"] = crow::json::wvalue::list();
-            
-            for (size_t i = 0; i < pending.size(); i++) {
-                result["pending_requests"][i] = pending[i];
-            }
-            
-            auto res = crow::response(200);
-            add_cors_headers(res, req);
-            res.set_header("Content-Type", "application/json");
-            res.body = result.dump();
-            return res;
-            
+            // Verify token and get current user
+            std::string token = req.get_header_value("Authorization").substr(7);
+            std::string username = auth->verifyToken(token);
+
+            // Get pending requests
+            std::vector<std::string> requests = friendsManager->getPendingRequests(username);
+
+            crow::json::wvalue response;
+            response["success"] = true;
+            response["requests"] = requests;
+            return crow::response(response);
+
         } catch (const std::exception& e) {
-            return makeJsonResponse(req, 500, e.what(), true);
+            crow::json::wvalue response;
+            response["success"] = false;
+            response["message"] = std::string("Error: ") + e.what();
+            response["requests"] = std::vector<std::string>();
+            return crow::response(response);
         }
     });
     
@@ -874,61 +984,73 @@ int main(int argc, char* argv[]) {
     CROW_ROUTE(app, "/api/users/search").methods("GET"_method)([&auth, &userSearchBST](const crow::request& req) {
         try {
             std::cout << "\n=== SEARCH REQUEST RECEIVED ===" << std::endl;
-            std::string token = getTokenFromRequest(req);
-            if (token.empty()) {
-                std::cout << "No token provided" << std::endl;
-                return makeJsonResponse(req, 401, "Authentication required", true);
-            }
-
-            std::string currentUser = auth->verifyToken(token);
-            if (currentUser.empty()) {
-                std::cout << "Invalid token" << std::endl;
-                return makeJsonResponse(req, 401, "Invalid token", true);
-            }
-            std::cout << "Search request from user: " << currentUser << std::endl;
-
+            
             // Get search query and type from URL parameters
             std::string query = req.url_params.get("q") ? req.url_params.get("q") : "";
             std::string searchType = req.url_params.get("type") ? req.url_params.get("type") : "substring";
-            std::cout << "Search query: '" << query << "', type: " << searchType << std::endl;
             
             if (query.empty()) {
-                std::cout << "Empty query provided" << std::endl;
-                return makeJsonResponse(req, 400, "Search query is required", true);
+                crow::json::wvalue response;
+                response["users"] = std::vector<std::string>();
+                response["success"] = true;
+                response["message"] = "No search query provided";
+                return crow::response(response);
             }
 
-            json response;
-            response["success"] = true;
-            response["users"] = json::array();
-            response["search_type"] = searchType;
+            std::cout << "Search query: '" << query << "', type: " << searchType << std::endl;
 
-            // Use BST for efficient searching
-            std::vector<std::string> searchResults;
+            // Get current user if authenticated
+            std::string currentUser;
+            try {
+                std::string authHeader = req.get_header_value("Authorization");
+                if (!authHeader.empty() && authHeader.substr(0, 7) == "Bearer ") {
+                    currentUser = auth->verifyToken(authHeader.substr(7));
+                }
+            } catch (...) {
+                // If token verification fails, continue without a user
+            }
+
+            // Perform search
+            std::vector<std::string> results;
             if (searchType == "prefix") {
                 std::cout << "Performing prefix search..." << std::endl;
-                searchResults = userSearchBST->searchByPrefix(query);
+                results = userSearchBST->searchByPrefix(query);
             } else {
                 std::cout << "Performing substring search..." << std::endl;
-                searchResults = userSearchBST->searchBySubstring(query);
+                results = userSearchBST->searchBySubstring(query);
             }
-            
-            std::cout << "BST search returned " << searchResults.size() << " results:";
-            for (const auto& result : searchResults) {
-                std::cout << " '" << result << "'";
-            }
-            std::cout << std::endl;
 
-            // Filter out current user and add to response
-            for (const auto& username : searchResults) {
+            // Filter out current user from results
+            std::vector<std::string> filtered_results;
+            for (const auto& username : results) {
                 if (username != currentUser) {
-                    response["users"].push_back(username);
-                    std::cout << "Added to response: " << username << std::endl;
+                    filtered_results.push_back(username);
                 }
             }
 
-            return makeJsonResponse(req, 200, response.dump());
+            // Print response for debugging
+            std::cout << "Sending response with " << filtered_results.size() << " results" << std::endl;
+            for (const auto& username : filtered_results) {
+                std::cout << "Result: " << username << std::endl;
+            }
+
+            // Create response in the format expected by the frontend
+            crow::json::wvalue response;
+            response["users"] = std::move(filtered_results);
+            response["success"] = true;
+            response["message"] = "Search completed successfully";
+
+            auto res = crow::response(response);
+            res.add_header("Content-Type", "application/json");
+            return res;
+
         } catch (const std::exception& e) {
-            return makeJsonResponse(req, 500, e.what(), true);
+            std::cerr << "Error in search: " << e.what() << std::endl;
+            crow::json::wvalue error_response;
+            error_response["success"] = false;
+            error_response["message"] = std::string("Search error: ") + e.what();
+            error_response["users"] = std::vector<std::string>();
+            return crow::response(error_response);
         }
     });
 
